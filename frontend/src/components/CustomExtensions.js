@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
-import { useNotification } from '../contexts/NotificationContext'; // Import useNotification
+import { useNotification } from '../contexts/NotificationContext';
+import ConfirmationDialog from './ConfirmationDialog'; // Import ConfirmationDialog
 
 const CustomExtensions = ({ refreshTrigger }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { showNotification } = useNotification(); // Use the notification hook
+  const { showNotification } = useNotification();
+
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [extensionToDeleteId, setExtensionToDeleteId] = useState(null);
 
   const fetchExtensions = async () => {
     try {
@@ -14,28 +18,41 @@ const CustomExtensions = ({ refreshTrigger }) => {
       setExtensions(response.data.data);
     } catch (error) {
       console.error('커스텀 확장자 조회 실패:', error);
-      showNotification('커스텀 확장자 조회에 실패했습니다.', 'error'); // Use showNotification
+      showNotification('커스텀 확장자 조회에 실패했습니다.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('정말로 삭제하시겠습니까?')) return;
-    
+  const handleDeleteClick = (id) => {
+    setExtensionToDeleteId(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsConfirmDialogOpen(false); // Close dialog first
+    if (extensionToDeleteId === null) return;
+
     try {
-      await extensionApi.deleteCustomExtension(id);
-      setExtensions(extensions.filter(ext => ext.id !== id));
-      showNotification('확장자가 삭제되었습니다.', 'success'); // Use showNotification
+      await extensionApi.deleteCustomExtension(extensionToDeleteId);
+      setExtensions(extensions.filter(ext => ext.id !== extensionToDeleteId));
+      showNotification('확장자가 삭제되었습니다.', 'success');
     } catch (error) {
       console.error('커스텀 확장자 삭제 실패:', error);
-      showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error'); // Use showNotification
+      showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+    } finally {
+      setExtensionToDeleteId(null); // Reset
     }
+  };
+
+  const cancelDelete = () => {
+    setIsConfirmDialogOpen(false);
+    setExtensionToDeleteId(null);
   };
 
   useEffect(() => {
     fetchExtensions();
-  }, [refreshTrigger]); // refreshTrigger가 변경될 때마다 목록을 새로고침
+  }, [refreshTrigger]);
 
   if (loading) return <div>로딩중...</div>;
 
@@ -47,7 +64,7 @@ const CustomExtensions = ({ refreshTrigger }) => {
           <span key={ext.id} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f0f0f0', padding: '5px 10px', borderRadius: '15px', border: '1px solid #ddd' }}>
             {ext.extension}
             <button 
-              onClick={() => handleDelete(ext.id)} 
+              onClick={() => handleDeleteClick(ext.id)} // Use handleDeleteClick
               style={{ marginLeft: '8px', background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '1em', padding: '0', lineHeight: '1' }}
             >
               &times;
@@ -55,6 +72,14 @@ const CustomExtensions = ({ refreshTrigger }) => {
           </span>
         ))}
       </div>
+
+      <ConfirmationDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        title="확장자 삭제 확인"
+        message="정말로 이 확장자를 삭제하시겠습니까?"
+      />
     </div>
   );
 };

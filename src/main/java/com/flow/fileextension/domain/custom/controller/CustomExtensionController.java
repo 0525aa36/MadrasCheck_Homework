@@ -18,7 +18,8 @@ import java.util.List;
 @RequestMapping("/api/extensions/custom")
 @RequiredArgsConstructor
 @Validated // Enable validation for this controller
-public class CustomExtensionController {
+public class
+CustomExtensionController {
 
     private final CustomExtensionService customExtensionService;
 

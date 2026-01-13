@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface FixedExtensionRepository extends JpaRepository<FixedExtension, Long> {
     Optional<FixedExtension> findByExtension(String extension);
     boolean existsByExtension(String extension);
+    Optional<FixedExtension> findByExtensionIgnoreCase(String extension); // Add this line
 }
