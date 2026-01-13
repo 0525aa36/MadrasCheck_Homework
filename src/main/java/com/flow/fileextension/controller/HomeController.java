@@ -1,8 +1,8 @@
 package com.flow.fileextension.controller;
 
-import com.flow.fileextension.global.security.SessionUser;
-import jakarta.servlet.http.HttpSession;
+import com.flow.fileextension.global.security.CustomOAuth2User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,16 +11,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequiredArgsConstructor
 public class HomeController {
 
-    private final HttpSession httpSession;
-
     @GetMapping("/")
-    public String index(Model model) {
-        SessionUser user = (SessionUser) httpSession.getAttribute("user");
-
-        if (user != null) {
-            model.addAttribute("userName", user.getName());
+    public String index(Model model, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+        if (customOAuth2User != null) {
+            model.addAttribute("userName", customOAuth2User.getName());
         }
-
         return "index";
     }
 }
