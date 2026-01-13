@@ -2,9 +2,11 @@ package com.flow.fileextension.domain.fixed.dto;
 
 import com.flow.fileextension.domain.fixed.entity.FixedExtension;
 import lombok.Builder;
+import lombok.Getter; // Add this import
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Builder
+@Getter // Add this annotation
 public class FixedExtensionResponseDto {
     private Long id;
     private String extension;
