@@ -42,6 +42,11 @@ public class CustomExtensionService {
         return CustomExtensionResponseDto.from(saved);
     }
 
+    public void deleteCustomExtension(Long id) {
+        validateExtensionExists(id);
+        customExtensionRepository.deleteById(id);
+    }
+
     private String normalizeExtension(String extension) {
         return extension.toLowerCase().replace(".", "").trim();
     }
@@ -61,6 +66,12 @@ public class CustomExtensionService {
     private void validateDuplicateInFixed(String extension) {
         if (fixedExtensionRepository.existsByExtension(extension)) {
             throw new IllegalArgumentException("고정 확장자에 이미 존재합니다: " + extension);
+        }
+    }
+
+    private void validateExtensionExists(Long id) {
+        if (!customExtensionRepository.existsById(id)) {
+            throw new IllegalArgumentException("확장자를 찾을 수 없습니다: " + id);
         }
     }
 }
