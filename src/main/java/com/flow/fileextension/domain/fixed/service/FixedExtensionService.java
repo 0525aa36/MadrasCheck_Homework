@@ -1,5 +1,6 @@
 package com.flow.fileextension.domain.fixed.service;
 
+import com.flow.fileextension.domain.fixed.dto.FixedExtensionResponseDto;
 import com.flow.fileextension.domain.fixed.entity.FixedExtension;
 import com.flow.fileextension.domain.fixed.repository.FixedExtensionRepository;
 import jakarta.annotation.PostConstruct;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,5 +30,12 @@ public class FixedExtensionService {
                         .build());
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<FixedExtensionResponseDto> getAllFixedExtensions() {
+        return fixedExtensionRepository.findAll().stream()
+                .map(FixedExtensionResponseDto::from)
+                .collect(Collectors.toList());
     }
 }
