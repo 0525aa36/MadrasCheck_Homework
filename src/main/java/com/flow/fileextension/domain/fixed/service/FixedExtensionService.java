@@ -38,4 +38,15 @@ public class FixedExtensionService {
                 .map(FixedExtensionResponseDto::from)
                 .collect(Collectors.toList());
     }
+
+    public FixedExtensionResponseDto updateBlockStatus(Long id, Boolean isBlocked) {
+        FixedExtension extension = findFixedExtensionById(id);
+        extension.updateBlockStatus(isBlocked);
+        return FixedExtensionResponseDto.from(fixedExtensionRepository.save(extension));
+    }
+
+    private FixedExtension findFixedExtensionById(Long id) {
+        return fixedExtensionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("확장자를 찾을 수 없습니다: " + id));
+    }
 }
