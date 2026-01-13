@@ -30,3 +30,7 @@ export const extensionApi = {
 export const authApi = {
   checkAuthStatus: () => api.get('/user/me'),
 };
+
+export const fileApi = {
+  checkFileExtension: (file) => api.post('/files/check', file, { headers: { 'Content-Type': 'multipart/form-data' } }),
+};

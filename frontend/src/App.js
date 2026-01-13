@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FixedExtensions from './components/FixedExtensions';
 import ExtensionInput from './components/ExtensionInput';
 import CustomExtensions from './components/CustomExtensions';
+import FileExtensionChecker from './components/FileExtensionChecker'; // Import FileExtensionChecker
 import Login from './components/Login'; // Import the new Login component
 import { authApi } from './services/api'; // Import authApi
 import './App.css'; // Keep App.css for basic app styling if needed, or remove if all styling is in index.css
@@ -52,6 +53,8 @@ function App() {
       </div>
 
       <CustomExtensions refreshTrigger={customExtensionsRefreshTrigger} />
+
+      <FileExtensionChecker /> {/* Add FileExtensionChecker */}
     </div>
   );
 }
