@@ -9,10 +9,8 @@ const api = axios.create({
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response && error.response.status === 401) {
-      // Redirect to the frontend's root, which will then show the Login component
-      window.location.href = '/';
-    }
+    // If a 401 is received, App.js will handle rendering the Login component
+    // No need for a redirect here, as it causes a loop.
     return Promise.reject(error);
   }
 );

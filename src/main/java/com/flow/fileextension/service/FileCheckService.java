@@ -1,6 +1,7 @@
 package com.flow.fileextension.service;
 
 import com.flow.fileextension.domain.custom.repository.CustomExtensionRepository;
+import com.flow.fileextension.domain.fixed.entity.FixedExtension;
 import com.flow.fileextension.domain.fixed.repository.FixedExtensionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class FileCheckService {
 
         // Check if it's a blocked fixed extension
         if (fixedExtensionRepository.findByExtension(normalizedExtension)
-                                    .map(fixed -> fixed.getIsBlocked())
+                                    .map(FixedExtension::isBlocked)
                                     .orElse(false)) {
             return true;
         }
