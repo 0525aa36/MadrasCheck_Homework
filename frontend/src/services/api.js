@@ -10,8 +10,8 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response && error.response.status === 401) {
-      // Redirect to Google OAuth login page
-      window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+      // Redirect to the frontend's root, which will then show the Login component
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }
@@ -25,4 +25,8 @@ export const extensionApi = {
   addCustomExtension: (extension) => 
     api.post(`/extensions/custom?extension=${extension}`),
   deleteCustomExtension: (id) => api.delete(`/extensions/custom/${id}`),
+};
+
+export const authApi = {
+  checkAuthStatus: () => api.get('/user/me'),
 };

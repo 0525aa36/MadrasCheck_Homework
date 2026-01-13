@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
+import { useNotification } from '../contexts/NotificationContext'; // Import useNotification
 
 const CustomExtensions = ({ refreshTrigger }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotification(); // Use the notification hook
 
   const fetchExtensions = async () => {
     try {
@@ -12,7 +14,7 @@ const CustomExtensions = ({ refreshTrigger }) => {
       setExtensions(response.data.data);
     } catch (error) {
       console.error('커스텀 확장자 조회 실패:', error);
-      alert('커스텀 확장자 조회에 실패했습니다.');
+      showNotification('커스텀 확장자 조회에 실패했습니다.', 'error'); // Use showNotification
     } finally {
       setLoading(false);
     }
@@ -24,10 +26,10 @@ const CustomExtensions = ({ refreshTrigger }) => {
     try {
       await extensionApi.deleteCustomExtension(id);
       setExtensions(extensions.filter(ext => ext.id !== id));
-      alert('확장자가 삭제되었습니다.');
+      showNotification('확장자가 삭제되었습니다.', 'success'); // Use showNotification
     } catch (error) {
       console.error('커스텀 확장자 삭제 실패:', error);
-      alert('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message));
+      showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error'); // Use showNotification
     }
   };
 

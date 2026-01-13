@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { extensionApi } from '../services/api';
+import { useNotification } from '../contexts/NotificationContext'; // Import useNotification
 
 const ExtensionInput = ({ onAdd }) => {
   const [extension, setExtension] = useState('');
   const [error, setError] = useState('');
+  const { showNotification } = useNotification(); // Use the notification hook
 
   // 단일 책임: 입력 검증
   const validateExtension = (value) => {
@@ -30,10 +32,10 @@ const ExtensionInput = ({ onAdd }) => {
       setExtension('');
       setError('');
       onAdd(response.data.data); // 부모 컴포넌트에 추가된 확장자 전달
-      alert('확장자가 추가되었습니다.');
+      showNotification('확장자가 추가되었습니다.', 'success'); // Use showNotification
     } catch (err) {
       const errorMessage = err.response?.data?.message || '확장자 추가에 실패했습니다.';
-      setError(errorMessage);
+      showNotification(errorMessage, 'error'); // Use showNotification for API errors
       console.error('확장자 추가 실패:', err);
     }
   };

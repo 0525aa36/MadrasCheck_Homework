@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
+import { useNotification } from '../contexts/NotificationContext'; // Import useNotification
 
 const FixedExtensions = () => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotification(); // Use the notification hook
 
   // 단일 책임: 데이터 가져오기
   const fetchExtensions = async () => {
@@ -13,7 +15,7 @@ const FixedExtensions = () => {
       setExtensions(response.data.data);
     } catch (error) {
       console.error('고정 확장자 조회 실패:', error);
-      alert('고정 확장자 조회에 실패했습니다.');
+      showNotification('고정 확장자 조회에 실패했습니다.', 'error'); // Use showNotification
     } finally {
       setLoading(false);
     }
@@ -28,7 +30,7 @@ const FixedExtensions = () => {
       ));
     } catch (error) {
       console.error('고정 확장자 업데이트 실패:', error);
-      alert('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message));
+      showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error'); // Use showNotification
     }
   };
 
