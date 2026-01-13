@@ -5,6 +5,18 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Add a response interceptor
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401) {
+      // Redirect to Google OAuth login page
+      window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const extensionApi = {
   getFixedExtensions: () => api.get('/extensions/fixed'),
   updateFixedExtension: (id, isBlocked) => 
