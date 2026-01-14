@@ -25,21 +25,30 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/error", "/actuator/health", "/css/**", "/images/**", "/js/**").permitAll()
-                        .requestMatchers("/api/**").authenticated()
+                        // 메인 페이지 및 정적 리소스 (비로그인 허용)
+                        .requestMatchers("/", "/error", "/actuator/health", "/css/**", "/images/**", "/js/**").permitAll()
+                        
+                        // 조회 API (비로그인 허용)
+                        .requestMatchers("/api/extensions/fixed", "/api/extensions/custom", "/api/extensions/blocked").permitAll()
+                        .requestMatchers("/api/file/check").permitAll()
+                        
+                        // 수정 API (로그인 필수)
+                        .requestMatchers("/api/extensions/**").authenticated()
+                        
                         .anyRequest().authenticated()
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
                 )
                 .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/")  // 로그인 페이지를 메인 페이지로 설정
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) // Return 401 for unauthenticated requests
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 );
 
         return http.build();
