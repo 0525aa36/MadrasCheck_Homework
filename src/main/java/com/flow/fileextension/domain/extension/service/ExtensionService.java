@@ -4,6 +4,8 @@ import com.flow.fileextension.domain.extension.dto.ExtensionResponseDto;
 import com.flow.fileextension.domain.extension.entity.Extension;
 import com.flow.fileextension.domain.extension.repository.ExtensionRepository;
 import com.flow.fileextension.domain.user.entity.User;
+import com.flow.fileextension.global.constants.ErrorMessages;
+import com.flow.fileextension.global.util.ExtensionValidator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +78,7 @@ public class ExtensionService {
         Extension extension = findExtensionById(id);
         
         if (!extension.isFixed()) {
-            throw new IllegalArgumentException("고정 확장자만 차단 상태를 변경할 수 있습니다");
+            throw new IllegalArgumentException(ErrorMessages.EXTENSION_FIXED_ONLY);
         }
         
         log.info("확장자 {} 차단 상태 변경: {} -> {} (수정자: {})", 
@@ -90,7 +92,9 @@ public class ExtensionService {
     }
 
     public ExtensionResponseDto addCustomExtension(String extensionName, User user) {
-        String normalized = normalizeExtension(extensionName);
+        // 유틸리티 클래스를 사용한 검증
+        ExtensionValidator.validate(extensionName);
+        String normalized = ExtensionValidator.normalize(extensionName);
         
         validateMaxCustomCount();
         validateDuplicate(normalized);
@@ -112,7 +116,7 @@ public class ExtensionService {
         Extension extension = findExtensionById(id);
         
         if (extension.isFixed()) {
-            throw new IllegalArgumentException("고정 확장자는 삭제할 수 없습니다");
+            throw new IllegalArgumentException(ErrorMessages.EXTENSION_FIXED_DELETE);
         }
         
         log.info("커스텀 확장자 삭제: {} (삭제자: {})", 
@@ -123,23 +127,19 @@ public class ExtensionService {
 
     private Extension findExtensionById(Long id) {
         return extensionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("확장자를 찾을 수 없습니다: " + id));
-    }
-
-    private String normalizeExtension(String extension) {
-        return extension.toLowerCase().replace(".", "").trim();
+                .orElseThrow(() -> new IllegalArgumentException(ErrorMessages.EXTENSION_NOT_FOUND + ": " + id));
     }
 
     private void validateMaxCustomCount() {
         long customCount = extensionRepository.countByIsFixedFalse();
         if (customCount >= MAX_CUSTOM_EXTENSIONS) {
-            throw new IllegalStateException("커스텀 확장자는 최대 " + MAX_CUSTOM_EXTENSIONS + "개까지만 추가 가능합니다");
+            throw new IllegalStateException(ErrorMessages.EXTENSION_MAX_COUNT);
         }
     }
 
     private void validateDuplicate(String extension) {
         if (extensionRepository.existsByExtension(extension)) {
-            throw new IllegalArgumentException("이미 존재하는 확장자입니다: " + extension);
+            throw new IllegalArgumentException(ErrorMessages.EXTENSION_DUPLICATE + ": " + extension);
         }
     }
 }
