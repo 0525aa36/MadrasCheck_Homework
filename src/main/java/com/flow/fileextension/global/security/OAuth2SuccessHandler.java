@@ -34,7 +34,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         log.info("OAuth2 로그인 성공 - 사용자 정보를 세션에 저장: email={}, name={}", 
                 sessionUser.getEmail(), sessionUser.getName());
         
-        // 프론트엔드로 리다이렉트
-        getRedirectStrategy().sendRedirect(request, response, "http://localhost:3000");
+        // 메인 페이지로 리다이렉트
+        getRedirectStrategy().sendRedirect(request, response, "/");
     }
 }
