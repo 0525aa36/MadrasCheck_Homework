@@ -3,7 +3,7 @@ import { extensionApi } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import './FixedExtensions.css';
 
-const FixedExtensions = ({ onUpdate }) => {
+const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
@@ -22,15 +22,27 @@ const FixedExtensions = ({ onUpdate }) => {
   };
 
   const handleToggle = async (id, currentStatus) => {
+    if (!isAuthenticated) {
+      showNotification('확장자를 수정하려면 로그인이 필요합니다.', 'warning');
+      if (onLoginRequired) onLoginRequired();
+      return;
+    }
+
     try {
       await extensionApi.updateFixedExtension(id, !currentStatus);
-      setExtensions(extensions.map(ext => 
+      setExtensions(extensions.map(ext =>
         ext.id === id ? { ...ext, blocked: !currentStatus } : ext
       ));
       if (onUpdate) onUpdate();
+      showNotification('고정 확장자가 수정되었습니다.', 'success');
     } catch (error) {
       console.error('고정 확장자 업데이트 실패:', error);
-      showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        showNotification('로그인이 필요합니다.', 'error');
+        if (onLoginRequired) onLoginRequired();
+      } else {
+        showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      }
     }
   };
 

@@ -25,21 +25,24 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/error", "/actuator/health", "/css/**", "/images/**", "/js/**").permitAll()
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().authenticated()
+                        // 조회 API (비로그인 허용)
+                        .requestMatchers("/api/extensions/fixed", "/api/extensions/custom", "/api/extensions/blocked").permitAll()
+                        .requestMatchers("/api/file/check").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll() // 인증 관련 API
+                        
+                        // 수정 API (로그인 필수)
+                        .requestMatchers("/api/extensions/**").authenticated()
+                        
+                        .anyRequest().permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/")
+                        .logoutSuccessUrl("http://localhost:3000")
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
-                )
-                .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) // Return 401 for unauthenticated requests
                 );
 
         return http.build();

@@ -34,7 +34,8 @@ export const extensionApi = {
 };
 
 export const authApi = {
-  checkAuthStatus: () => api.get('/user/me'),
+  checkAuthStatus: () => api.get('/auth/user'),
+  logout: () => api.post('/auth/logout'),
 };
 
 export const fileApi = {

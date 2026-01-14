@@ -4,7 +4,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import ConfirmationDialog from './ConfirmationDialog';
 import './CustomExtensions.css';
 
-const CustomExtensions = ({ refreshTrigger, onUpdate }) => {
+const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRequired }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
@@ -26,6 +26,12 @@ const CustomExtensions = ({ refreshTrigger, onUpdate }) => {
   };
 
   const handleDeleteClick = (id) => {
+    if (!isAuthenticated) {
+      showNotification('확장자를 삭제하려면 로그인이 필요합니다.', 'warning');
+      if (onLoginRequired) onLoginRequired();
+      return;
+    }
+    
     setExtensionToDeleteId(id);
     setIsConfirmDialogOpen(true);
   };
@@ -41,7 +47,12 @@ const CustomExtensions = ({ refreshTrigger, onUpdate }) => {
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('커스텀 확장자 삭제 실패:', error);
-      showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        showNotification('로그인이 필요합니다.', 'error');
+        if (onLoginRequired) onLoginRequired();
+      } else {
+        showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
+      }
     } finally {
       setExtensionToDeleteId(null);
     }

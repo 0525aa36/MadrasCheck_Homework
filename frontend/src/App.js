@@ -4,7 +4,6 @@ import ExtensionInput from './components/ExtensionInput';
 import CustomExtensions from './components/CustomExtensions';
 import FileExtensionChecker from './components/FileExtensionChecker';
 import ExtensionHistory from './components/ExtensionHistory';
-import Login from './components/Login';
 import { authApi } from './services/api';
 import './App.css';
 
@@ -22,8 +21,12 @@ function App() {
         console.log('사용자 정보 응답:', response.data);
         // ApiResponse 구조: { success, message, data }
         const userData = response.data.data;
-        setCurrentUser(userData);
-        setIsAuthenticated(true);
+        if (userData) {
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
       } catch (error) {
         console.error('인증 확인 실패:', error);
         setIsAuthenticated(false);
@@ -44,6 +47,20 @@ function App() {
     setHistoryRefreshTrigger(prev => prev + 1);
   };
 
+  const handleLogin = () => {
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
+  };
+
   if (loadingAuth) {
     return (
       <div className="loading-container">
@@ -53,10 +70,6 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Login />;
-  }
-
   return (
     <div className="app-container">
       <div className="app-header">
@@ -64,7 +77,7 @@ function App() {
           <h1 className="app-title">
             파일 확장자 차단 시스템
           </h1>
-          {currentUser && (
+          {isAuthenticated && currentUser ? (
             <div className="user-info">
               {currentUser.picture ? (
                 <img 
@@ -78,20 +91,39 @@ function App() {
                 </div>
               )}
               <span className="user-name">{currentUser.name}</span>
+              <button className="logout-btn" onClick={handleLogout}>
+                로그아웃
+              </button>
             </div>
+          ) : (
+            <button className="login-btn" onClick={handleLogin}>
+              🔐 로그인
+            </button>
           )}
         </div>
       </div>
 
+      {!isAuthenticated && (
+        <div className="notice-banner">
+          ℹ️ 조회 및 파일 검증은 로그인 없이 가능합니다. 확장자를 수정하려면 로그인해주세요.
+        </div>
+      )}
+
       <div className="app-content">
         <div className="main-section">
-          <FixedExtensions onUpdate={handleExtensionUpdate} />
+          <FixedExtensions 
+            onUpdate={handleExtensionUpdate} 
+            isAuthenticated={isAuthenticated}
+            onLoginRequired={handleLogin}
+          />
           
           <div className="custom-section">
-            <ExtensionInput onAdd={handleCustomExtensionAdded} />
+            {isAuthenticated && <ExtensionInput onAdd={handleCustomExtensionAdded} />}
             <CustomExtensions 
               refreshTrigger={customExtensionsRefreshTrigger} 
               onUpdate={handleExtensionUpdate}
+              isAuthenticated={isAuthenticated}
+              onLoginRequired={handleLogin}
             />
           </div>
 
