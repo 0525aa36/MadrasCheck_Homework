@@ -24,6 +24,23 @@ public class ExtensionValidator {
     }
     
     /**
+     * 확장자 형식 검증 - 예외 던지는 버전 (테스트용)
+     */
+    public static void validateFormat(String extension) {
+        if (extension == null || extension.trim().isEmpty()) {
+            throw new IllegalArgumentException("확장자는 비어있을 수 없습니다.");
+        }
+        
+        if (extension.length() > MAX_EXTENSION_LENGTH) {
+            throw new IllegalArgumentException("확장자는 최대 20자까지 입력 가능합니다.");
+        }
+        
+        if (!VALID_EXTENSION_PATTERN.matcher(extension).matches()) {
+            throw new IllegalArgumentException("확장자는 영문자와 숫자만 입력 가능합니다.");
+        }
+    }
+    
+    /**
      * 확장자 길이 검증 (최대 20자)
      */
     public static boolean isValidLength(String extension) {
@@ -71,6 +88,50 @@ public class ExtensionValidator {
             return "";
         }
         return extension.toLowerCase().replace(".", "").trim();
+    }
+    
+    /**
+     * 확장자 정규화 - 별칭 메서드 (테스트용)
+     */
+    public static String normalizeExtension(String extension) {
+        return normalize(extension);
+    }
+    
+    /**
+     * 파일명에 차단된 확장자가 포함되어 있는지 확인 (이중 확장자 포함)
+     * @param filename 검사할 파일명
+     * @param blockedExtensions 차단된 확장자 Set
+     * @return 차단됨(true), 허용됨(false)
+     */
+    public static boolean hasBlockedExtension(String filename, java.util.Set<String> blockedExtensions) {
+        if (filename == null || filename.isEmpty() || blockedExtensions == null || blockedExtensions.isEmpty()) {
+            return false;
+        }
+        
+        // 모든 확장자 추출 (이중 확장자 대응)
+        String[] parts = filename.toLowerCase().split("\\.");
+        
+        // 점으로 시작하는 경우 (숨김 파일)
+        if (parts.length == 0 || (parts.length == 1 && filename.startsWith("."))) {
+            // .exe 같은 경우 처리
+            if (filename.startsWith(".") && filename.length() > 1) {
+                String ext = filename.substring(1).toLowerCase();
+                return blockedExtensions.contains(ext);
+            }
+            return false;
+        }
+        
+        // 첫 번째 요소가 빈 문자열이면 (점으로 시작) 제외
+        int startIndex = (parts[0].isEmpty()) ? 1 : 1; // 첫 번째는 파일명이므로 제외
+        
+        // 모든 확장자 검사
+        for (int i = startIndex; i < parts.length; i++) {
+            if (blockedExtensions.contains(parts[i])) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**

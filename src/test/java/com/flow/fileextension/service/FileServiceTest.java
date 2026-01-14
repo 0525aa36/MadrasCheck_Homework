@@ -13,7 +13,9 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -31,17 +33,45 @@ class FileServiceTest {
 
     @BeforeEach
     void setUp() {
-        extensionRepository.deleteAll();
-        
-        // 차단된 확장자 설정
-        Extension exe = Extension.createFixed("exe");
-        exe.block();
-        Extension bat = Extension.createFixed("bat");
-        bat.block();
-        Extension cmd = Extension.createFixed("cmd");
-        cmd.block();
-        
-        extensionRepository.saveAll(List.of(exe, bat, cmd));
+        // 고정 확장자 설정 (차단 상태로)
+        List<String> fixedExts = Arrays.asList("exe", "bat", "cmd", "sh");  // CMD 추가!
+        for (String ext : fixedExts) {
+            Optional<Extension> existing = extensionRepository.findByExtension(ext);
+            if (existing.isEmpty()) {
+                // 없으면 생성 (차단 상태)
+                Extension fixed = Extension.builder()
+                        .extension(ext)
+                        .isFixed(true)
+                        .isBlocked(true)
+                        .createdBy(null)
+                        .build();
+                extensionRepository.save(fixed);
+            } else {
+                // 있으면 차단 상태로 업데이트
+                Extension extModel = existing.get();
+                if (!extModel.isBlocked()) {
+                    extModel.updateBlockStatus(true, null);
+                    extensionRepository.save(extModel);
+                }
+            }
+        }
+
+        // 커스텀 확장자는 테스트마다 삭제 후 재생성
+        extensionRepository.deleteAll(extensionRepository.findByIsFixedFalse());
+
+        Extension custom1 = Extension.builder()
+                .extension("pdf")
+                .isFixed(false)
+                .isBlocked(false)  // false로 변경! (허용 상태)
+                .createdBy(null)
+                .build();
+        Extension custom2 = Extension.builder()
+                .extension("doc")
+                .isFixed(false)
+                .isBlocked(false)
+                .createdBy(null)
+                .build();
+        extensionRepository.saveAll(Arrays.asList(custom1, custom2));
     }
 
     @Test
@@ -181,7 +211,7 @@ class FileServiceTest {
     @DisplayName("차단되지 않은 확장자를 가진 파일 - 검증 성공")
     void checkFileExtension_UnblockedCustomExtension_ReturnsFalse() {
         // given
-        Extension custom = Extension.createCustom("custom");
+        Extension custom = Extension.createCustomUnblocked("custom");  // 변경!
         // 차단하지 않음 (isBlocked = false)
         extensionRepository.save(custom);
 

@@ -1,6 +1,7 @@
 package com.flow.fileextension.global.exception;
 
 import com.flow.fileextension.global.response.ApiResponse;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -36,6 +37,22 @@ public class GlobalExceptionHandler {
                 .orElse("입력값이 올바르지 않습니다");
 
         log.error("MethodArgumentNotValidException: {}", message);
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(message));
+    }
+
+    /**
+     * @RequestParam, @PathVariable 등의 검증 예외 처리
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations()
+                .stream()
+                .findFirst()
+                .map(violation -> violation.getMessage())
+                .orElse("입력값이 올바르지 않습니다");
+
+        log.error("ConstraintViolationException: {}", message);
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(message));
     }

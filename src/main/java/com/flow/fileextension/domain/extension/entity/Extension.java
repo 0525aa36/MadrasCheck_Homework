@@ -51,6 +51,35 @@ public class Extension {
         this.updatedBy = createdBy;
     }
 
+    // 정적 팩토리 메서드 - 테스트용
+    public static Extension createFixed(String extension) {
+        return Extension.builder()
+                .extension(extension)
+                .isFixed(true)
+                .isBlocked(false)
+                .createdBy(null)
+                .build();
+    }
+
+    public static Extension createCustom(String extension) {
+        return Extension.builder()
+                .extension(extension)
+                .isFixed(false)
+                .isBlocked(true)
+                .createdBy(null)
+                .build();
+    }
+    
+    // 차단되지 않은 커스텀 확장자 생성 (테스트용)
+    public static Extension createCustomUnblocked(String extension) {
+        return Extension.builder()
+                .extension(extension)
+                .isFixed(false)
+                .isBlocked(false)
+                .createdBy(null)
+                .build();
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -69,5 +98,14 @@ public class Extension {
 
     public void updateUpdatedBy(User updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    // 편의 메서드 - 테스트용
+    public void block() {
+        this.isBlocked = true;
+    }
+
+    public void unblock() {
+        this.isBlocked = false;
     }
 }

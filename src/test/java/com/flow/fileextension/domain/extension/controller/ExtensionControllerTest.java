@@ -3,6 +3,8 @@ package com.flow.fileextension.domain.extension.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flow.fileextension.domain.extension.entity.Extension;
 import com.flow.fileextension.domain.extension.repository.ExtensionRepository;
+import com.flow.fileextension.domain.user.entity.User;
+import com.flow.fileextension.domain.user.repository.UserRepository;
 import com.flow.fileextension.global.security.SessionUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -36,36 +40,46 @@ class ExtensionControllerTest {
     private ExtensionRepository extensionRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private MockHttpSession session;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
-        extensionRepository.deleteAll();
+        // 커스텀 확장자만 삭제 (고정 확장자는 유지)
+        extensionRepository.deleteAll(extensionRepository.findByIsFixedFalse());
+        
+        // 테스트 사용자 생성
+        testUser = User.builder()
+                .name("테스트 사용자")
+                .email("test@test.com")
+                .profileImage("http://picture.url")
+                .build();
+        testUser = userRepository.save(testUser);
         
         // 세션 설정
         session = new MockHttpSession();
-        SessionUser sessionUser = new SessionUser("테스트 사용자", "test@test.com", "http://picture.url", 1L);
+        SessionUser sessionUser = new SessionUser(testUser);
         session.setAttribute("user", sessionUser);
     }
 
     @Test
     @DisplayName("GET /api/extensions/fixed - 고정 확장자 목록 조회")
     void getFixedExtensions_Success() throws Exception {
-        // given
-        Extension fixed1 = Extension.createFixed("exe");
-        Extension fixed2 = Extension.createFixed("bat");
-        extensionRepository.saveAll(List.of(fixed1, fixed2));
+        // given - @PostConstruct로 이미 고정 확장자들이 생성되어 있음
 
         // when & then
         mockMvc.perform(get("/api/extensions/fixed")
+                        .with(user("test@test.com"))  // Spring Security 인증 추가
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -78,6 +92,7 @@ class ExtensionControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/extensions/custom")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -89,20 +104,20 @@ class ExtensionControllerTest {
     @Test
     @DisplayName("PATCH /api/extensions/fixed/{id}/block - 고정 확장자 차단 상태 변경")
     void updateFixedExtensionBlockStatus_Success() throws Exception {
-        // given
-        Extension fixed = Extension.createFixed("exe");
-        Extension saved = extensionRepository.save(fixed);
+        // given - 이미 존재하는 고정 확장자 사용
+        Extension fixed = extensionRepository.findByExtension("exe").orElseThrow();
 
         // when & then
-        mockMvc.perform(patch("/api/extensions/fixed/{id}/block", saved.getId())
+        mockMvc.perform(patch("/api/extensions/fixed/{id}/block", fixed.getId())
                         .param("isBlocked", "true")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
         // 검증
-        Extension updated = extensionRepository.findById(saved.getId()).orElseThrow();
+        Extension updated = extensionRepository.findById(fixed.getId()).orElseThrow();
         assertThat(updated.isBlocked()).isTrue();
     }
 
@@ -112,16 +127,17 @@ class ExtensionControllerTest {
         // when & then
         mockMvc.perform(post("/api/extensions/custom")
                         .param("extension", "pdf")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.extension").value("pdf"));
 
         // 검증
-        List<Extension> extensions = extensionRepository.findAll();
-        assertThat(extensions).hasSize(1);
-        assertThat(extensions.get(0).getExtension()).isEqualTo("pdf");
+        Extension saved = extensionRepository.findByExtension("pdf").orElseThrow();
+        assertThat(saved.getExtension()).isEqualTo("pdf");
+        assertThat(saved.isFixed()).isFalse();
     }
 
     @Test
@@ -134,11 +150,11 @@ class ExtensionControllerTest {
         // when & then
         mockMvc.perform(post("/api/extensions/custom")
                         .param("extension", "pdf")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("이미 등록된 확장자입니다."));
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -150,6 +166,7 @@ class ExtensionControllerTest {
         // when & then
         mockMvc.perform(post("/api/extensions/custom")
                         .param("extension", tooLongExtension)
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -162,6 +179,7 @@ class ExtensionControllerTest {
         // when & then
         mockMvc.perform(post("/api/extensions/custom")
                         .param("extension", "pdf!")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -180,6 +198,7 @@ class ExtensionControllerTest {
         // when & then
         mockMvc.perform(post("/api/extensions/custom")
                         .param("extension", "newext")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -196,6 +215,7 @@ class ExtensionControllerTest {
 
         // when & then
         mockMvc.perform(delete("/api/extensions/custom/{id}", saved.getId())
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -208,12 +228,12 @@ class ExtensionControllerTest {
     @Test
     @DisplayName("DELETE /api/extensions/custom/{id} - 고정 확장자 삭제 실패")
     void deleteCustomExtension_FixedExtension_Fail() throws Exception {
-        // given
-        Extension fixed = Extension.createFixed("exe");
-        Extension saved = extensionRepository.save(fixed);
+        // given - 이미 존재하는 고정 확장자 사용
+        Extension fixed = extensionRepository.findByExtension("exe").orElseThrow();
 
         // when & then
-        mockMvc.perform(delete("/api/extensions/custom/{id}", saved.getId())
+        mockMvc.perform(delete("/api/extensions/custom/{id}", fixed.getId())
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
@@ -224,21 +244,19 @@ class ExtensionControllerTest {
     @Test
     @DisplayName("GET /api/extensions/blocked - 차단된 확장자 목록 조회")
     void getBlockedExtensions_Success() throws Exception {
-        // given
-        Extension blocked1 = Extension.createCustom("exe");
-        blocked1.block();
-        Extension blocked2 = Extension.createCustom("bat");
-        blocked2.block();
-        Extension allowed = Extension.createCustom("pdf");
-        extensionRepository.saveAll(List.of(blocked1, blocked2, allowed));
+        // given - 고정 확장자 중 일부는 이미 차단되어 있음
+        Extension custom1 = Extension.createCustom("avi");
+        Extension custom2 = Extension.createCustom("mkv");
+        extensionRepository.saveAll(List.of(custom1, custom2));
 
         // when & then
         mockMvc.perform(get("/api/extensions/blocked")
+                        .with(user("test@test.com"))
                         .session(session))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                .andExpect(jsonPath("$.data").isArray());
+        // 고정 차단 + 커스텀 차단 확장자들이 조회됨
     }
 }

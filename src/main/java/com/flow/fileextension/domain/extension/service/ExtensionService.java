@@ -124,6 +124,61 @@ public class ExtensionService {
         
         extensionRepository.deleteById(id);
     }
+    
+    // ========== 테스트용 메서드 ==========
+    
+    @Transactional(readOnly = true)
+    public List<Extension> getFixedExtensions() {
+        return extensionRepository.findByIsFixedTrue();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<Extension> getCustomExtensions() {
+        return extensionRepository.findByIsFixedFalse();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<String> getBlockedExtensions() {
+        return extensionRepository.findByIsBlockedTrue().stream()
+                .map(Extension::getExtension)
+                .collect(Collectors.toList());
+    }
+    
+    public void updateFixedExtensionBlockStatus(Long id, Boolean isBlocked, Long userId) {
+        Extension extension = findExtensionById(id);
+        if (!extension.isFixed()) {
+            throw new IllegalArgumentException(ErrorMessages.EXTENSION_FIXED_ONLY);
+        }
+        extension.updateBlockStatus(isBlocked, null); // User 없이 테스트
+        extensionRepository.save(extension);
+    }
+    
+    public Extension addCustomExtension(String extensionName, Long userId) {
+        ExtensionValidator.validate(extensionName);
+        String normalized = ExtensionValidator.normalize(extensionName);
+        
+        validateMaxCustomCount();
+        validateDuplicate(normalized);
+        
+        Extension newExtension = Extension.builder()
+                .extension(normalized)
+                .isFixed(false)
+                .isBlocked(true)
+                .createdBy(null)
+                .build();
+        
+        return extensionRepository.save(newExtension);
+    }
+    
+    public void deleteCustomExtension(Long id) {
+        Extension extension = findExtensionById(id);
+        
+        if (extension.isFixed()) {
+            throw new IllegalArgumentException(ErrorMessages.CANNOT_DELETE_FIXED);
+        }
+        
+        extensionRepository.deleteById(id);
+    }
 
     private Extension findExtensionById(Long id) {
         return extensionRepository.findById(id)

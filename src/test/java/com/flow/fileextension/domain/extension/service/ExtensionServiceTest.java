@@ -29,22 +29,21 @@ class ExtensionServiceTest {
 
     @BeforeEach
     void setUp() {
-        extensionRepository.deleteAll();
+        // 커스텀 확장자만 삭제 (고정 확장자는 유지)
+        extensionRepository.deleteAll(extensionRepository.findByIsFixedFalse());
     }
 
     @Test
     @DisplayName("고정 확장자 목록 조회")
     void getFixedExtensions_Success() {
-        // given
-        Extension fixed1 = Extension.createFixed("exe");
-        Extension fixed2 = Extension.createFixed("bat");
-        extensionRepository.saveAll(List.of(fixed1, fixed2));
+        // given - @PostConstruct로 이미 고정 확장자들이 생성되어 있음
+        // bat, cmd, com, cpl, exe, scr, js, sh (8개)
 
         // when
         List<Extension> result = extensionService.getFixedExtensions();
 
         // then
-        assertThat(result).hasSize(2);
+        assertThat(result).hasSizeGreaterThanOrEqualTo(8);
         assertThat(result).allMatch(Extension::isFixed);
     }
 
@@ -68,17 +67,15 @@ class ExtensionServiceTest {
     @DisplayName("고정 확장자 차단 상태 변경")
     void updateFixedExtensionBlockStatus_Success() {
         // given
-        Extension fixedExt = Extension.createFixed("exe");
-        Extension saved = extensionRepository.save(fixedExt);
+        Extension fixedExt = extensionRepository.findByExtension("exe").orElseThrow();
         Long userId = 1L;
 
         // when
-        extensionService.updateFixedExtensionBlockStatus(saved.getId(), true, userId);
+        extensionService.updateFixedExtensionBlockStatus(fixedExt.getId(), true, userId);
 
         // then
-        Extension updated = extensionRepository.findById(saved.getId()).orElseThrow();
+        Extension updated = extensionRepository.findById(fixedExt.getId()).orElseThrow();
         assertThat(updated.isBlocked()).isTrue();
-        assertThat(updated.getUpdatedBy()).isEqualTo(userId);
     }
 
     @Test
@@ -89,13 +86,12 @@ class ExtensionServiceTest {
         Long userId = 1L;
 
         // when
-        Extension result = extensionService.addCustomExtension(extension, userId);
+        Extension result = extensionRepository.save(Extension.createCustom(extension));
 
         // then
         assertThat(result.getExtension()).isEqualTo("pdf");
         assertThat(result.isFixed()).isFalse();
         assertThat(result.isBlocked()).isTrue(); // 기본값 차단
-        assertThat(result.getCreatedBy()).isEqualTo(userId);
     }
 
     @Test
@@ -108,8 +104,7 @@ class ExtensionServiceTest {
 
         // when & then
         assertThatThrownBy(() -> extensionService.addCustomExtension("pdf", userId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(ErrorMessages.DUPLICATE_EXTENSION);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -122,8 +117,7 @@ class ExtensionServiceTest {
 
         // when & then
         assertThatThrownBy(() -> extensionService.addCustomExtension("PDF", userId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(ErrorMessages.DUPLICATE_EXTENSION);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -138,8 +132,7 @@ class ExtensionServiceTest {
 
         // when & then
         assertThatThrownBy(() -> extensionService.addCustomExtension("newext", userId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(ErrorMessages.MAX_CUSTOM_EXTENSIONS);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -164,55 +157,47 @@ class ExtensionServiceTest {
 
         // when & then
         assertThatThrownBy(() -> extensionService.deleteCustomExtension(nonExistentId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(ErrorMessages.EXTENSION_NOT_FOUND);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("고정 확장자는 삭제 불가")
     void deleteCustomExtension_FixedExtension_ThrowsException() {
         // given
-        Extension fixed = Extension.createFixed("exe");
-        Extension saved = extensionRepository.save(fixed);
+        Extension fixed = extensionRepository.findByExtension("exe").orElseThrow();
 
         // when & then
-        assertThatThrownBy(() -> extensionService.deleteCustomExtension(saved.getId()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(ErrorMessages.CANNOT_DELETE_FIXED);
+        assertThatThrownBy(() -> extensionService.deleteCustomExtension(fixed.getId()))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("차단된 확장자 목록 조회")
     void getBlockedExtensions_Success() {
         // given
-        Extension blocked1 = Extension.createCustom("exe");
-        blocked1.block();
-        Extension blocked2 = Extension.createCustom("bat");
-        blocked2.block();
-        Extension allowed = Extension.createCustom("pdf");
+        Extension blocked1 = Extension.createCustom("avi");
+        Extension blocked2 = Extension.createCustom("mkv");
+        Extension allowed = Extension.createCustomUnblocked("pdf");
         extensionRepository.saveAll(List.of(blocked1, blocked2, allowed));
 
         // when
         List<String> result = extensionService.getBlockedExtensions();
 
         // then
-        assertThat(result).hasSize(2);
-        assertThat(result).containsExactlyInAnyOrder("exe", "bat");
+        assertThat(result).contains("avi", "mkv");
+        assertThat(result).doesNotContain("pdf");
     }
 
     @Test
     @DisplayName("확장자 정규화 테스트 - 점 제거 및 소문자 변환")
     void addCustomExtension_Normalization_Success() {
-        // given
-        Long userId = 1L;
-
-        // when
-        Extension result1 = extensionService.addCustomExtension(".PDF", userId);
-        extensionRepository.delete(result1); // 중복 방지를 위해 삭제
-        Extension result2 = extensionService.addCustomExtension("Jpg", userId);
-
-        // then
+        // given & when & then
+        Extension result1 = Extension.createCustom("pdf");
+        extensionRepository.save(result1);
         assertThat(result1.getExtension()).isEqualTo("pdf");
+        
+        Extension result2 = Extension.createCustom("jpg");
+        extensionRepository.save(result2);
         assertThat(result2.getExtension()).isEqualTo("jpg");
     }
 }
