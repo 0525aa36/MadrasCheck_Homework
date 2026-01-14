@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
-import { useNotification } from '../contexts/NotificationContext'; // Import useNotification
+import { useNotification } from '../contexts/NotificationContext';
+import './FixedExtensions.css';
 
-const FixedExtensions = () => {
+const FixedExtensions = ({ onUpdate }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { showNotification } = useNotification(); // Use the notification hook
+  const { showNotification } = useNotification();
 
-  // 단일 책임: 데이터 가져오기
   const fetchExtensions = async () => {
     try {
       setLoading(true);
@@ -15,22 +15,22 @@ const FixedExtensions = () => {
       setExtensions(response.data.data);
     } catch (error) {
       console.error('고정 확장자 조회 실패:', error);
-      showNotification('고정 확장자 조회에 실패했습니다.', 'error'); // Use showNotification
+      showNotification('고정 확장자 조회에 실패했습니다.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // 단일 책임: 상태 토글
   const handleToggle = async (id, currentStatus) => {
     try {
       await extensionApi.updateFixedExtension(id, !currentStatus);
       setExtensions(extensions.map(ext => 
         ext.id === id ? { ...ext, blocked: !currentStatus } : ext
       ));
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error('고정 확장자 업데이트 실패:', error);
-      showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error'); // Use showNotification
+      showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
     }
   };
 
@@ -38,22 +38,40 @@ const FixedExtensions = () => {
     fetchExtensions();
   }, []);
 
-  if (loading) return <div>로딩중...</div>;
+  if (loading) {
+    return (
+      <div className="fixed-extensions">
+        <div className="fixed-extensions-loading">로딩중...</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-      <h2 style={{ fontSize: '1.2em', marginBottom: '10px' }}>고정 확장자</h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+    <div className="fixed-extensions">
+      <div className="fixed-extensions-header">
+        <h2>고정 확장자</h2>
+        <p className="fixed-extensions-description">
+          자주 차단하는 확장자입니다. 체크하면 해당 확장자가 차단됩니다.
+        </p>
+      </div>
+      
+      <div className="fixed-extensions-grid">
         {extensions.map(ext => (
-          <label key={ext.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '5px 8px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: ext.blocked ? '#ffe0e0' : '#e0ffe0' }}>
-            <input
-              type="checkbox"
-              checked={ext.blocked}
-              onChange={() => handleToggle(ext.id, ext.blocked)}
-              style={{ marginRight: '5px' }}
-            />
-            {ext.extension}
-          </label>
+          <div 
+            key={ext.id} 
+            className={`fixed-extension-item ${ext.blocked ? 'blocked' : ''}`}
+            onClick={() => handleToggle(ext.id, ext.blocked)}
+          >
+            <label className="fixed-extension-label">
+              <input
+                type="checkbox"
+                checked={ext.blocked}
+                onChange={() => {}}
+                className="fixed-extension-checkbox"
+              />
+              <span className="fixed-extension-name">.{ext.extension}</span>
+            </label>
+          </div>
         ))}
       </div>
     </div>

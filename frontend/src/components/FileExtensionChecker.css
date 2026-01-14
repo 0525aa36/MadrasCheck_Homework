@@ -1,0 +1,157 @@
+.file-checker {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.file-checker-header {
+  margin-bottom: 16px;
+}
+
+.file-checker-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #212529;
+  margin: 0 0 4px 0;
+}
+
+.file-checker-description {
+  font-size: 11px;
+  color: #868e96;
+  margin: 0;
+}
+
+.file-drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8f9fa;
+  margin-bottom: 16px;
+}
+
+.file-drop-zone:hover {
+  border-color: #228be6;
+  background: #e7f5ff;
+}
+
+.file-drop-zone.dragging {
+  border-color: #228be6;
+  background: #e7f5ff;
+  border-style: solid;
+}
+
+.file-drop-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.file-drop-text {
+  font-size: 14px;
+  color: #495057;
+  margin: 0 0 4px 0;
+}
+
+.file-drop-subtext {
+  font-size: 12px;
+  color: #868e96;
+  margin: 0;
+}
+
+.file-selected {
+  background: #fff;
+  border: 2px solid #228be6;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-icon {
+  font-size: 32px;
+}
+
+.file-info {
+  flex: 1;
+  text-align: left;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212529;
+  margin: 0 0 4px 0;
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #868e96;
+  margin: 0;
+}
+
+.file-checker-button {
+  width: 100%;
+  padding: 12px;
+  background: #228be6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-checker-button:hover {
+  background: #1c7ed6;
+}
+
+.file-checker-button:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+}
+
+.file-checker-result {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-checker-result.blocked {
+  background: #fff5f5;
+  color: #c92a2a;
+  border: 2px solid #ff6b6b;
+}
+
+.file-checker-result.allowed {
+  background: #ebfbee;
+  color: #2b8a3e;
+  border: 2px solid #51cf66;
+}
+
+.file-checker-loading {
+  text-align: center;
+  padding: 20px;
+  color: #868e96;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .file-drop-zone {
+    padding: 30px 15px;
+  }
+
+  .file-drop-icon {
+    font-size: 36px;
+  }
+}

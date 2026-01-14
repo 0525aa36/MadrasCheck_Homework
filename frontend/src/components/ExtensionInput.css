@@ -1,0 +1,83 @@
+.extension-input-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.extension-input-header {
+  margin-bottom: 12px;
+}
+
+.extension-input-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #212529;
+  margin: 0 0 4px 0;
+}
+
+.extension-input-description {
+  font-size: 11px;
+  color: #868e96;
+  margin: 0;
+}
+
+.extension-input-form {
+  display: flex;
+  gap: 10px;
+}
+
+.extension-input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.extension-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.extension-input-field:focus {
+  outline: none;
+  border-color: #228be6;
+  background: #f8f9fa;
+}
+
+.extension-input-field::placeholder {
+  color: #adb5bd;
+}
+
+.extension-input-button {
+  padding: 10px 20px;
+  background: #228be6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.extension-input-button:hover {
+  background: #1c7ed6;
+}
+
+.extension-input-button:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 768px) {
+  .extension-input-form {
+    flex-direction: column;
+  }
+
+  .extension-input-button {
+    width: 100%;
+  }
+}

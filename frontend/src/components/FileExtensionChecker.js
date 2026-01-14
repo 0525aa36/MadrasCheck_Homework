@@ -1,25 +1,26 @@
 import React, { useState } from 'react';
 import { fileApi } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
+import './FileExtensionChecker.css';
 
 const FileExtensionChecker = () => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [isBlocked, setIsBlocked] = useState(null); // null: initial, true: blocked, false: not blocked
+  const [isBlocked, setIsBlocked] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false); // State for drag-and-drop visual feedback
+  const [isDragging, setIsDragging] = useState(false);
   const { showNotification } = useNotification();
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setIsBlocked(null); // Reset status when a new file is selected
-      event.target.value = null; // Clear the input value to allow selecting the same file again if needed
+      setIsBlocked(null);
+      event.target.value = null;
     }
   };
 
   const handleDragOver = (event) => {
-    event.preventDefault(); // Prevent default to allow drop
+    event.preventDefault();
     setIsDragging(true);
   };
 
@@ -28,13 +29,12 @@ const FileExtensionChecker = () => {
   };
 
   const handleDrop = (event) => {
-    event.preventDefault(); // Prevent default file opening
+    event.preventDefault();
     setIsDragging(false);
     const file = event.dataTransfer.files[0];
     if (file) {
       setSelectedFile(file);
-      setIsBlocked(null); // Reset status when a new file is dropped
-      console.log("Dropped file:", file); // Add this for debugging
+      setIsBlocked(null);
     }
   };
 
@@ -71,62 +71,89 @@ const FileExtensionChecker = () => {
     if (lastDotIndex > 0 && lastDotIndex < filename.length - 1) {
       return filename.substring(lastDotIndex + 1);
     }
-    return ''; // No extension or invalid
+    return '';
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-      <h2 style={{ fontSize: '1.2em', marginBottom: '10px' }}>파일 확장자 차단 여부 확인</h2>
-      
-      <div 
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => document.getElementById('fileInput').click()} // Trigger hidden input on click
-        style={{
-          border: `2px dashed ${isDragging ? '#007bff' : '#ccc'}`,
-          borderRadius: '8px',
-          padding: '20px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          marginBottom: '10px',
-          backgroundColor: isDragging ? '#e6f7ff' : '#f8f8f8',
-          position: 'relative', // Needed for absolute positioning of input
-        }}
-      >
-        {selectedFile ? (
-          <p>선택된 파일: <strong>{selectedFile.name}</strong></p>
-        ) : (
-          <p>파일을 여기에 드래그 앤 드롭하거나 클릭하여 선택하세요.</p>
-        )}
-        <input 
-          type="file" 
-          id="fileInput" // Add an ID
-          onChange={handleFileChange} 
-          style={{ 
-            opacity: 0, 
-            position: 'absolute', 
-            width: '100%', 
-            height: '100%', 
-            top: 0, 
-            left: 0, 
-            cursor: 'pointer' 
-          }} 
-        />
+    <div className="file-checker">
+      <div className="file-checker-header">
+        <h2>파일 확장자 차단 여부 확인</h2>
+        <p className="file-checker-description">
+          파일을 업로드하여 확장자가 차단되었는지 확인하세요
+        </p>
       </div>
 
+      <input
+        id="fileInput"
+        type="file"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
+      {!selectedFile ? (
+        <div 
+          className={`file-drop-zone ${isDragging ? 'dragging' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById('fileInput').click()}
+        >
+          <div className="file-drop-icon">📁</div>
+          <p className="file-drop-text">파일을 드래그 앤 드롭하거나 클릭하여 선택하세요</p>
+          <p className="file-drop-subtext">모든 파일 형식 지원</p>
+        </div>
+      ) : (
+        <div className="file-selected">
+          <div className="file-icon">📄</div>
+          <div className="file-info">
+            <p className="file-name">{selectedFile.name}</p>
+            <p className="file-size">{formatFileSize(selectedFile.size)}</p>
+          </div>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedFile(null);
+              setIsBlocked(null);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#868e96'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <button 
-        onClick={handleCheckExtension} 
+        onClick={handleCheckExtension}
         disabled={!selectedFile || loading}
-        style={{ padding: '8px 15px', borderRadius: '4px', border: 'none', backgroundColor: '#28a745', color: 'white', cursor: 'pointer' }}
+        className="file-checker-button"
       >
         {loading ? '확인 중...' : '확장자 확인'}
       </button>
 
       {isBlocked !== null && (
-        <p style={{ marginTop: '15px', fontWeight: 'bold', color: isBlocked ? 'red' : 'green' }}>
-          {isBlocked ? `'.${getFileExtension(selectedFile.name)}' 확장자는 차단되었습니다.` : `'.${getFileExtension(selectedFile.name)}' 확장자는 차단되지 않았습니다.`}
-        </p>
+        <div className={`file-checker-result ${isBlocked ? 'blocked' : 'allowed'}`}>
+          {isBlocked ? (
+            <>
+              🚫 이 파일의 확장자는 <strong>차단</strong>되었습니다
+            </>
+          ) : (
+            <>
+              ✅ 이 파일의 확장자는 <strong>허용</strong>됩니다
+            </>
+          )}
+        </div>
       )}
     </div>
   );

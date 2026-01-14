@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
-import ConfirmationDialog from './ConfirmationDialog'; // Import ConfirmationDialog
+import ConfirmationDialog from './ConfirmationDialog';
+import './CustomExtensions.css';
 
-const CustomExtensions = ({ refreshTrigger }) => {
+const CustomExtensions = ({ refreshTrigger, onUpdate }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
@@ -30,18 +31,19 @@ const CustomExtensions = ({ refreshTrigger }) => {
   };
 
   const confirmDelete = async () => {
-    setIsConfirmDialogOpen(false); // Close dialog first
+    setIsConfirmDialogOpen(false);
     if (extensionToDeleteId === null) return;
 
     try {
       await extensionApi.deleteCustomExtension(extensionToDeleteId);
       setExtensions(extensions.filter(ext => ext.id !== extensionToDeleteId));
       showNotification('확장자가 삭제되었습니다.', 'success');
+      if (onUpdate) onUpdate();
     } catch (error) {
       console.error('커스텀 확장자 삭제 실패:', error);
       showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
     } finally {
-      setExtensionToDeleteId(null); // Reset
+      setExtensionToDeleteId(null);
     }
   };
 
@@ -54,23 +56,42 @@ const CustomExtensions = ({ refreshTrigger }) => {
     fetchExtensions();
   }, [refreshTrigger]);
 
-  if (loading) return <div>로딩중...</div>;
+  if (loading) {
+    return (
+      <div className="custom-extensions">
+        <div className="custom-extensions-loading">로딩중...</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '8px' }}>
-      <h2 style={{ fontSize: '1.2em', marginBottom: '10px' }}>커스텀 확장자 ({extensions.length} / 200)</h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-        {extensions.map(ext => (
-          <span key={ext.id} style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f0f0f0', padding: '5px 10px', borderRadius: '15px', border: '1px solid #ddd' }}>
-            {ext.extension}
-            <button 
-              onClick={() => handleDeleteClick(ext.id)} // Use handleDeleteClick
-              style={{ marginLeft: '8px', background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '1em', padding: '0', lineHeight: '1' }}
-            >
-              &times;
-            </button>
-          </span>
-        ))}
+    <div className="custom-extensions">
+      <div className="custom-extensions-header">
+        <h2>커스텀 확장자</h2>
+        <span className="custom-extensions-count">
+          {extensions.length} / 200
+        </span>
+      </div>
+
+      <div className="custom-extensions-list">
+        {extensions.length === 0 ? (
+          <div className="custom-extensions-empty">
+            추가된 커스텀 확장자가 없습니다
+          </div>
+        ) : (
+          extensions.map(ext => (
+            <div key={ext.id} className="custom-extension-tag">
+              <span className="custom-extension-name">.{ext.extension}</span>
+              <button 
+                onClick={() => handleDeleteClick(ext.id)}
+                className="custom-extension-delete"
+                title="삭제"
+              >
+                ×
+              </button>
+            </div>
+          ))
+        )}
       </div>
 
       <ConfirmationDialog

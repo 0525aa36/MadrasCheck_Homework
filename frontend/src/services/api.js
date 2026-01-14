@@ -24,6 +24,13 @@ export const extensionApi = {
     api.post(`/extensions/custom?extension=${extension}`),
   deleteCustomExtension: (id) => api.delete(`/extensions/custom/${id}`),
   getBlockedExtensions: () => api.get('/extensions/blocked'),
+  getAllExtensions: () => api.get('/extensions/fixed').then(fixed => 
+    api.get('/extensions/custom').then(custom => ({
+      data: {
+        data: [...fixed.data.data, ...custom.data.data]
+      }
+    }))
+  ),
 };
 
 export const authApi = {
