@@ -64,8 +64,8 @@ public class ExtensionController {
             @PathVariable Long id,
             @RequestParam Boolean isBlocked) {
         try {
-            User currentUser = getCurrentUser();
-            ExtensionResponseDto response = extensionService.updateBlockStatus(id, isBlocked, currentUser);
+            Long userId = getCurrentUserId();
+            ExtensionResponseDto response = extensionService.updateBlockStatus(id, isBlocked, userId);
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -83,8 +83,8 @@ public class ExtensionController {
             @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "확장자는 영문과 숫자만 가능합니다")
             String extension) {
         try {
-            User currentUser = getCurrentUser();
-            ExtensionResponseDto response = extensionService.addCustomExtension(extension, currentUser);
+            Long userId = getCurrentUserId();
+            ExtensionResponseDto response = extensionService.addCustomExtension(extension, userId);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(response));
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -99,8 +99,7 @@ public class ExtensionController {
     @DeleteMapping("/custom/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCustomExtension(@PathVariable Long id) {
         try {
-            User currentUser = getCurrentUser();
-            extensionService.deleteCustomExtension(id, currentUser);
+            extensionService.deleteCustomExtension(id);
             return ResponseEntity.ok(ApiResponse.success(null));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -109,7 +108,23 @@ public class ExtensionController {
     }
 
     /**
-     * 현재 로그인한 사용자 조회
+     * 현재 로그인한 사용자 ID 조회
+     */
+    private Long getCurrentUserId() {
+        SessionUser sessionUser = (SessionUser) httpSession.getAttribute("user");
+        if (sessionUser == null) {
+            log.warn("세션에 사용자 정보가 없습니다. 비로그인 상태로 처리합니다.");
+            return null;
+        }
+        
+        log.info("세션 사용자 정보: email={}, name={}, id={}", 
+                sessionUser.getEmail(), sessionUser.getName(), sessionUser.getId());
+        
+        return sessionUser.getId();
+    }
+    
+    /**
+     * 현재 로그인한 사용자 조회 (기존 호환성 유지)
      */
     private User getCurrentUser() {
         SessionUser sessionUser = (SessionUser) httpSession.getAttribute("user");
