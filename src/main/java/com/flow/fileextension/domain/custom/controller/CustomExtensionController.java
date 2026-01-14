@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * @deprecated 이 컨트롤러는 더 이상 사용되지 않습니다.
+ * {@link com.flow.fileextension.domain.extension.controller.ExtensionController}를 사용하세요.
+ */
+@Deprecated
 @RestController
 @RequestMapping("/api/extensions/custom")
 @RequiredArgsConstructor
