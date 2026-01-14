@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/extensions")
 @RequiredArgsConstructor
@@ -112,10 +114,16 @@ public class ExtensionController {
     private User getCurrentUser() {
         SessionUser sessionUser = (SessionUser) httpSession.getAttribute("user");
         if (sessionUser == null) {
+            log.warn("세션에 사용자 정보가 없습니다. 비로그인 상태로 처리합니다.");
             return null; // 비로그인 상태
         }
         
+        log.info("세션 사용자 정보: email={}, name={}", sessionUser.getEmail(), sessionUser.getName());
+        
         return userRepository.findByEmail(sessionUser.getEmail())
-                .orElse(null);
+                .orElseGet(() -> {
+                    log.warn("DB에서 사용자를 찾을 수 없습니다: {}", sessionUser.getEmail());
+                    return null;
+                });
     }
 }
