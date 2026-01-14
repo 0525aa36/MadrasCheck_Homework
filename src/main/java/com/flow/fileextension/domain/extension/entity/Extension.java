@@ -6,8 +6,11 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "extensions")
@@ -64,30 +67,6 @@ public class Extension {
                 .isFixed(false)
                 .isBlocked(true)
                 .build();
-    }
-    
-    // 테스트용 추가 메서드
-    @Transactional(readOnly = true)
-    public List<Extension> getFixedExtensions() {
-        return extensionRepository.findByIsFixedTrue();
-    }
-    
-    @Transactional(readOnly = true)
-    public List<Extension> getCustomExtensions() {
-        return extensionRepository.findByIsFixedFalse();
-    }
-    
-    @Transactional(readOnly = true)
-    public List<String> getBlockedExtensions() {
-        return extensionRepository.findByIsBlockedTrue().stream()
-                .map(Extension::getExtension)
-                .collect(Collectors.toList());
-    }
-    
-    public void updateFixedExtensionBlockStatus(Long id, Boolean isBlocked, Long userId) {
-        Extension extension = findExtensionById(id);
-        extension.updateBlockStatus(isBlocked, userId);
-        extensionRepository.save(extension);
     }
 
     @PrePersist
