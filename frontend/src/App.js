@@ -19,9 +19,13 @@ function App() {
     const checkAuthentication = async () => {
       try {
         const response = await authApi.checkAuthStatus();
-        setCurrentUser(response.data);
+        console.log('사용자 정보 응답:', response.data);
+        // ApiResponse 구조: { success, message, data }
+        const userData = response.data.data;
+        setCurrentUser(userData);
         setIsAuthenticated(true);
       } catch (error) {
+        console.error('인증 확인 실패:', error);
         setIsAuthenticated(false);
       } finally {
         setLoadingAuth(false);
@@ -62,9 +66,17 @@ function App() {
           </h1>
           {currentUser && (
             <div className="user-info">
-              <div className="user-avatar">
-                {currentUser.name ? currentUser.name[0] : '?'}
-              </div>
+              {currentUser.picture ? (
+                <img 
+                  src={currentUser.picture} 
+                  alt={currentUser.name}
+                  className="user-avatar"
+                />
+              ) : (
+                <div className="user-avatar">
+                  {currentUser.name ? currentUser.name[0].toUpperCase() : '?'}
+                </div>
+              )}
               <span className="user-name">{currentUser.name}</span>
             </div>
           )}
