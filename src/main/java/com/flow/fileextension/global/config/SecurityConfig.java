@@ -35,8 +35,7 @@ public class SecurityConfig {
                         // 수정 API (로그인 필수)
                         .requestMatchers("/api/extensions/**").authenticated()
                         
-                        // 나머지는 모두 허용
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
@@ -47,6 +46,9 @@ public class SecurityConfig {
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
+                )
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 );
 
         return http.build();
