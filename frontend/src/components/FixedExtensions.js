@@ -26,7 +26,7 @@ const FixedExtensions = () => {
     try {
       await extensionApi.updateFixedExtension(id, !currentStatus);
       setExtensions(extensions.map(ext => 
-        ext.id === id ? { ...ext, isBlocked: !currentStatus } : ext
+        ext.id === id ? { ...ext, blocked: !currentStatus } : ext
       ));
     } catch (error) {
       console.error('고정 확장자 업데이트 실패:', error);
@@ -45,11 +45,11 @@ const FixedExtensions = () => {
       <h2 style={{ fontSize: '1.2em', marginBottom: '10px' }}>고정 확장자</h2>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
         {extensions.map(ext => (
-          <label key={ext.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '5px 8px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: ext.isBlocked ? '#ffe0e0' : '#e0ffe0' }}>
+          <label key={ext.id} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '5px 8px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: ext.blocked ? '#ffe0e0' : '#e0ffe0' }}>
             <input
               type="checkbox"
-              checked={ext.isBlocked}
-              onChange={() => handleToggle(ext.id, ext.isBlocked)}
+              checked={ext.blocked}
+              onChange={() => handleToggle(ext.id, ext.blocked)}
               style={{ marginRight: '5px' }}
             />
             {ext.extension}

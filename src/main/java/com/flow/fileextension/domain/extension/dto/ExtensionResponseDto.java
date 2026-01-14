@@ -1,5 +1,6 @@
 package com.flow.fileextension.domain.extension.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flow.fileextension.domain.extension.entity.Extension;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,8 +17,13 @@ public class ExtensionResponseDto {
     
     private Long id;
     private String extension;
+    
+    @JsonProperty("fixed")
     private boolean isFixed;
+    
+    @JsonProperty("blocked")
     private boolean isBlocked;
+    
     private String createdByName;
     private String updatedByName;
     private LocalDateTime createdAt;
