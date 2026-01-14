@@ -3,7 +3,6 @@ package com.flow.fileextension.domain.extension.service;
 import com.flow.fileextension.domain.extension.dto.ExtensionResponseDto;
 import com.flow.fileextension.domain.extension.entity.Extension;
 import com.flow.fileextension.domain.extension.repository.ExtensionRepository;
-import com.flow.fileextension.domain.user.entity.User;
 import com.flow.fileextension.global.constants.ErrorMessages;
 import com.flow.fileextension.global.util.ExtensionValidator;
 import jakarta.annotation.PostConstruct;
@@ -74,24 +73,23 @@ public class ExtensionService {
                 .collect(Collectors.toList());
     }
 
-    public ExtensionResponseDto updateBlockStatus(Long id, Boolean isBlocked, User user) {
+    public ExtensionResponseDto updateBlockStatus(Long id, Boolean isBlocked, Long userId) {
         Extension extension = findExtensionById(id);
         
         if (!extension.isFixed()) {
             throw new IllegalArgumentException(ErrorMessages.EXTENSION_FIXED_ONLY);
         }
         
-        log.info("확장자 {} 차단 상태 변경: {} -> {} (수정자: {})", 
-                extension.getExtension(), extension.isBlocked(), isBlocked, 
-                user != null ? user.getName() : "시스템");
+        log.info("확장자 {} 차단 상태 변경: {} -> {} (수정자 ID: {})", 
+                extension.getExtension(), extension.isBlocked(), isBlocked, userId);
         
-        extension.updateBlockStatus(isBlocked, user);
+        extension.updateBlockStatus(isBlocked, userId);
         Extension savedExtension = extensionRepository.save(extension);
         
         return ExtensionResponseDto.from(savedExtension);
     }
 
-    public ExtensionResponseDto addCustomExtension(String extensionName, User user) {
+    public ExtensionResponseDto addCustomExtension(String extensionName, Long userId) {
         // 유틸리티 클래스를 사용한 검증
         ExtensionValidator.validate(extensionName);
         String normalized = ExtensionValidator.normalize(extensionName);
@@ -103,26 +101,49 @@ public class ExtensionService {
                 .extension(normalized)
                 .isFixed(false)
                 .isBlocked(true)  // 커스텀 확장자는 추가 시 자동으로 차단됨
-                .createdBy(user)
+                .createdBy(userId)
                 .build();
         
         Extension saved = extensionRepository.save(newExtension);
-        log.info("커스텀 확장자 추가: {} (생성자: {})", normalized, user != null ? user.getName() : "알 수 없음");
+        log.info("커스텀 확장자 추가: {} (생성자 ID: {})", normalized, userId);
         
         return ExtensionResponseDto.from(saved);
     }
 
-    public void deleteCustomExtension(Long id, User user) {
+    public void deleteCustomExtension(Long id) {
         Extension extension = findExtensionById(id);
         
         if (extension.isFixed()) {
             throw new IllegalArgumentException(ErrorMessages.EXTENSION_FIXED_DELETE);
         }
         
-        log.info("커스텀 확장자 삭제: {} (삭제자: {})", 
-                extension.getExtension(), user != null ? user.getName() : "알 수 없음");
+        log.info("커스텀 확장자 삭제: {}", extension.getExtension());
         
         extensionRepository.deleteById(id);
+    }
+    
+    // 테스트용 추가 메서드
+    @Transactional(readOnly = true)
+    public List<Extension> getFixedExtensions() {
+        return extensionRepository.findByIsFixedTrue();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<Extension> getCustomExtensions() {
+        return extensionRepository.findByIsFixedFalse();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<String> getBlockedExtensions() {
+        return extensionRepository.findByIsBlockedTrue().stream()
+                .map(Extension::getExtension)
+                .collect(Collectors.toList());
+    }
+    
+    public void updateFixedExtensionBlockStatus(Long id, Boolean isBlocked, Long userId) {
+        Extension extension = findExtensionById(id);
+        extension.updateBlockStatus(isBlocked, userId);
+        extensionRepository.save(extension);
     }
 
     private Extension findExtensionById(Long id) {
