@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment & Deployment ###
+.env
+*.pem
+instance_id.txt
+public_ip.txt
+aws-deploy.sh
