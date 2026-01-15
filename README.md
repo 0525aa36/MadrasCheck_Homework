@@ -1,513 +1,734 @@
 # 파일 확장자 차단 시스템
 
-> 파일 확장자 차단 과제 설명
+플로우 백엔드 개발자 채용 과제
 
-보안상 위험한 파일 확장자를 관리하고 차단하는 웹 애플리케이션입니다.  
-특정 확장자(예: exe, sh 등)를 가진 파일의 업로드를 제한하여 서버 보안을 강화합니다.
-<br>
-
----
-
-## 과제 요구사항
-
-### 과제 개요
-파일 확장자에 따라 특정 형식의 파일을 첨부하거나 전송하지 못하도록 제한하는 시스템을 구현합니다.
-
-### 필수 요구사항
-
-#### 1️⃣ 고정 확장자 (Fixed Extensions)
-- **기능**: 자주 차단하는 확장자 목록 (8개 제공)
-  - bat, cmd, com, cpl, exe, scr, js, sh
-- **상태 관리**: 체크박스로 차단/허용 상태 변경
-- **영속성**: 상태 변경 시 DB 저장, 새로고침 시에도 유지
-- **주의사항**: 고정 확장자는 커스텀 확장자 영역에 표시되지 않음
-
-#### 2️⃣ 커스텀 확장자 (Custom Extensions)
-- **입력 제한**: 최대 20자
-- **추가**: 입력 후 "추가" 버튼 클릭 시 DB 저장 및 화면 표시
-- **최대 개수**: 200개까지 추가 가능
-- **삭제**: 확장자 옆 X 버튼 클릭 시 DB에서 삭제 및 화면에서 제거
-
-#### 3️⃣ 화면 요구사항
-- 고정 확장자 체크박스 목록
-- 커스텀 확장자 입력 필드 및 추가 버튼
-- 추가된 커스텀 확장자 표시 영역 (3/200 형태로 개수 표시)
-
-<br>
+배포 URL: http://your-domain:3000  
+GitHub: https://github.com/your-repo
 
 ---
 
-## 구현 기능
+## 목차
 
-### 핵심 기능
-
-#### 1. 고정 확장자 관리
-```
-✓ 8개 고정 확장자 기본 제공 (bat, cmd, com, cpl, exe, scr, js, sh)
-✓ 체크박스 토글로 차단/허용 상태 변경
-✓ 새로고침 시 상태 유지 (DB 영속화)
-✓ 차단 상태만 변경 가능 (삭제 불가)
-```
-
-#### 2. 커스텀 확장자 관리
-```
-✓ 최대 200개까지 추가 가능 (실시간 카운터 표시)
-✓ 입력 길이 20자 제한
-✓ 중복 확장자 추가 방지
-✓ X 버튼 클릭으로 삭제
-✓ 추가 시 자동으로 차단 상태로 등록
-```
-
-#### 3. 파일 업로드 검증
-```
-✓ 업로드 전 확장자 검사
-✓ 차단된 확장자 업로드 시 거부
-✓ 이중 확장자 검증 (file.exe.txt 등)
-✓ 검증 결과 실시간 피드백
-```
-
-#### 4. 사용자 인증
-```
-✓ Google OAuth2 소셜 로그인
-✓ 로그인 없이도 고정 확장자 조회 가능
-✓ 커스텀 확장자 추가/삭제는 로그인 필수
-✓ 사용자별 변경 이력 추적
-```
-
-#### 5. 변경 이력 추적
-```
-✓ 모든 확장자 변경사항 로깅
-✓ 누가(사용자), 언제(시간), 무엇을(확장자), 어떻게(추가/삭제/차단/허용) 기록
-✓ 실시간 이력 조회 (최근 20개)
-```
-
-<br>
+1. [과제 요구사항](#1-과제-요구사항)
+2. [요구사항 이외 구현사항](#2-요구사항-이외-구현사항)
+3. [ERD](#3-erd)
+4. [아키텍처](#4-아키텍처)
+5. [화면](#5-화면)
+6. [구현 시 고민과 의사결정](#6-구현-시-고민과-의사결정)
+7. [실행 방법](#7-실행-방법)
 
 ---
 
-## 요건 이외 고려사항
+## 1. 과제 요구사항
 
-### 1. 보안 강화
+### 필수 구현 사항
 
-#### 이중 확장자 검증
-**문제점**:
-- 악의적 사용자가 `virus.exe.txt` 같은 파일로 차단을 우회할 수 있음
-- 일반적으로 마지막 확장자(`.txt`)만 검사하면 실행 파일(`.exe`)을 숨길 수 있음
+#### 고정 확장자
+- 8개 고정 확장자 제공: bat, cmd, com, cpl, exe, scr, js, sh
+- 기본값은 체크 해제(차단되지 않음)
+- 체크/언체크 시 DB에 저장
+- 새로고침 시에도 상태 유지
+- 커스텀 확장자 영역에 표시되지 않음
 
-**해결책**:
+#### 커스텀 확장자
+- 확장자 입력 (최대 20자)
+- 추가 버튼 클릭 시 DB 저장 및 화면 표시
+- 최대 200개까지 추가 가능
+- 추가된 개수 표시 (예: 3/200)
+- X 버튼으로 삭제
+
+---
+
+## 2. 요구사항 이외 구현사항
+
+### OAuth2 소셜 로그인 및 권한 관리
+
+**구현 배경**
+실제 SaaS 서비스에서는 회원가입 절차가 진입 장벽이 될 수 있습니다. Google 소셜 로그인을 통해 사용자 편의성을 높이고자 했습니다.
+
+또한 파일 확장자 차단 시스템은 보안과 직결된 민감한 설정이므로, 아무나 차단 설정을 변경할 수 있다면 악의적인 사용자가 차단을 해제하여 위험한 파일을 업로드할 수 있습니다. 이에 인증된 사용자만 수정할 수 있도록 권한을 분리했습니다.
+
+**구현 내용**
+- Spring Security OAuth2 Client 사용
+- Google OAuth2 인증
+- 최초 로그인 시 자동 회원가입
+- 세션 기반 인증 상태 관리
+
+**권한 설계**
+
+```java
+// SecurityConfig.java
+http.authorizeHttpRequests(authorize -> authorize
+    // 조회 API (비로그인 허용)
+    .requestMatchers("/api/extensions/fixed").permitAll()
+    .requestMatchers("/api/extensions/custom").permitAll()
+    .requestMatchers("/api/file/check").permitAll()
+    
+    // 수정 API (로그인 필수)
+    .requestMatchers("/api/extensions/**").authenticated()
+)
+```
+
+**권한 구분**
+
+| 기능 | 비인증 사용자 | 인증 사용자 |
+|------|--------------|------------|
+| 고정 확장자 조회 | O | O |
+| 커스텀 확장자 조회 | O | O |
+| 차단 목록 조회 | O | O |
+| 파일 검증 | O | O |
+| 고정 확장자 차단/허용 | X | O |
+| 커스텀 확장자 추가 | X | O |
+| 커스텀 확장자 삭제 | X | O |
+
+**설계 의도**
+
+조회를 허용한 이유:
+- 확장자 목록 자체는 민감한 정보가 아님
+- 사용자가 서비스를 미리 체험해볼 수 있음
+- 가입 전에도 파일 검증 기능을 사용할 수 있어 편의성 증대
+
+수정을 제한한 이유:
+- 차단 설정은 전체 시스템 보안에 영향
+- 무분별한 차단 해제 방지
+- 변경 이력 추적 필요 (누가 변경했는지)
+- 책임 소재 명확화
+
+### 이중 확장자 검증
+
+**구현 배경**
+과제 명세에는 명시되지 않았지만, 실제 서비스에서는 `virus.exe.txt`와 같이 이중 확장자를 사용하여 차단을 우회하려는 시도가 있을 수 있다고 판단했습니다.
+
+**구현 방법**
+파일명에서 모든 확장자를 추출하여 각각 검증합니다.
+
 ```java
 // ExtensionValidator.java
 public static String[] extractAllExtensions(String filename) {
-    // "file.exe.txt" → ["exe", "txt"] 모두 추출
     String[] parts = filename.split("\\.");
-    // 모든 확장자를 검사하여 하나라도 차단되면 업로드 거부
+    // 첫 번째 요소는 파일명이므로 제외
+    return Arrays.copyOfRange(parts, 1, parts.length);
 }
 ```
 
-**효과**:
-- `document.exe.txt` → ❌ 차단 (exe가 검출됨)
-- `backup.tar.gz` → ✅ 허용 (tar, gz 모두 미차단 시)
-
-#### 대소문자 정규화
-**문제점**:
-- `Exe`, `EXE`, `exe` 등 대소문자 조합으로 차단 우회 가능
-
-**해결책**:
+**검증 로직**
 ```java
-// 모든 확장자를 소문자로 정규화하여 저장/비교
+// FileCheckService.java
+public boolean isFileExtensionBlocked(MultipartFile file) {
+    String[] allExtensions = ExtensionValidator.extractAllExtensions(filename);
+    
+    for (String ext : allExtensions) {
+        if (extensionRepository.findByExtension(ext).isBlocked()) {
+            return true; // 하나라도 차단되면 전체 차단
+        }
+    }
+    return false;
+}
+```
+
+**효과**
+- `document.exe.txt` → exe가 차단되어 있으면 업로드 거부
+- `backup.tar.gz` → tar와 gz 모두 허용되어야 업로드 가능
+
+### 대소문자 정규화
+
+**구현 배경**
+사용자가 `exe`, `EXE`, `Exe` 등 다양한 형태로 입력할 수 있고, 이를 모두 동일하게 처리해야 한다고 판단했습니다.
+
+**구현 방법**
+저장 전 모든 확장자를 소문자로 변환합니다.
+
+```java
 public static String normalize(String extension) {
-    return extension.toLowerCase().replace(".", "").trim();
+    return extension.toLowerCase().trim();
 }
 ```
 
-**효과**:
-- `test.EXE` → ❌ 차단
-- `script.Sh` → ❌ 차단
-- 대소문자 구분 없이 일관된 차단
+### 사용자별 변경 이력 추적
 
-#### 입력 검증 강화
+**구현 배경**
+실무에서는 누가 언제 어떤 설정을 변경했는지 추적할 수 있어야 합니다. 특히 보안 관련 설정의 경우 감사 로그가 필수적이라고 생각했습니다.
+
+**구현 방법**
+Extension 엔티티에 생성자, 수정자, 생성일시, 수정일시를 기록합니다.
+
 ```java
-// 영문자, 숫자만 허용 (특수문자 차단)
-private static final Pattern VALID_EXTENSION_PATTERN = Pattern.compile("^[a-zA-Z0-9]+$");
-
-// 최대 길이 20자 제한
-private static final int MAX_EXTENSION_LENGTH = 20;
+@Entity
+public class Extension {
+    @ManyToOne
+    private User createdBy;
+    
+    @ManyToOne
+    private User updatedBy;
+    
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
 ```
 
-**방어 대상**:
-- SQL Injection: `exe'; DROP TABLE--`
-- XSS: `<script>alert(1)</script>`
-- 특수문자: `exe!@#$%`
+### 입력 검증
 
----
+**구현 배경**
+악의적인 입력으로부터 시스템을 보호해야 합니다.
 
-### 2. 아키텍처 개선
+**구현 내용**
+- 길이 제한: 최대 20자
+- 허용 문자: 영문자, 숫자만
+- 정규식 검증: `^[a-zA-Z0-9]+$`
+- SQL Injection, XSS 방어
 
-#### 테이블 통합 설계
+### 한글 에러 메시지
 
-**초기 설계 (Before)**:
-```
-┌─────────────────────┐  ┌─────────────────────┐
-│  fixed_extensions   │  │  custom_extensions  │
-├─────────────────────┤  ├─────────────────────┤
-│ id (PK)             │  │ id (PK)             │
-│ extension           │  │ extension           │
-│ is_blocked          │  │ user_id (FK)        │
-│ ...                 │  │ ...                 │
-└─────────────────────┘  └─────────────────────┘
-```
-**문제점**:
-- 코드 중복 (Controller, Service, Repository 각각 2개씩)
-- 전체 확장자 조회 시 UNION 쿼리 필요
-- 확장자 검증 로직 분산
+**구현 배경**
+사용자 친화적인 서비스를 위해 에러 메시지를 한글로 제공하고, 상수 클래스로 중앙 관리하여 일관성을 유지했습니다.
 
-**개선된 설계 (After)**:
-```
-┌────────────────────────────────┐
-│        extensions              │
-├────────────────────────────────┤
-│ id (PK)                        │
-│ extension (UNIQUE)             │
-│ is_fixed (Boolean)  ← 구분 플래그│
-│ is_blocked (Boolean)           │
-│ created_by (FK) → users        │
-│ updated_by (FK) → users        │
-│ created_at                     │
-│ updated_at                     │
-└────────────────────────────────┘
-```
-
-**개선 효과**:
-```
-✅ Controller 2개 → 1개 (50% 감소)
-✅ Service 2개 → 1개 (50% 감소)  
-✅ Repository 2개 → 1개 (50% 감소)
-✅ 단순 쿼리: SELECT * FROM extensions WHERE is_fixed = true
-✅ 유지보수 용이: 비즈니스 로직 한 곳에서 관리
-```
-
-#### 도메인 주도 설계 (DDD) 적용
-```
-src/main/java/com/flow/fileextension/
-├── domain/                    # 도메인 계층
-│   ├── extension/            # 확장자 도메인
-│   │   ├── controller/       # API 진입점
-│   │   ├── dto/             # 데이터 전송 객체
-│   │   ├── entity/          # JPA 엔티티
-│   │   ├── repository/      # 데이터 접근
-│   │   └── service/         # 비즈니스 로직
-│   └── user/                # 사용자 도메인
-│       └── ...
-├── global/                   # 전역 설정
-│   ├── config/              # Spring 설정
-│   ├── constants/           # 상수
-│   ├── exception/           # 예외 처리
-│   ├── response/            # API 응답 포맷
-│   ├── security/            # OAuth2 설정
-│   └── util/                # 유틸리티
-└── service/                 # 애플리케이션 서비스
-```
-
-**장점**:
-- 도메인별 응집도 향상
-- 의존성 방향 명확화 (domain ← global)
-- 테스트 용이성 증가
-
----
-
-### 3. 사용자 경험 개선
-
-#### OAuth2 소셜 로그인
-**구현 이유**:
-- 회원가입 절차 간소화
-- 비밀번호 관리 부담 제거
-- Google 인증 보안 활용
-
-**인증 흐름**:
-```
-사용자 → "로그인" 클릭 
-    → Google 로그인 페이지
-    → 인증 성공 
-    → 사용자 정보 저장
-    → 세션 생성
-    → 메인 페이지 리다이렉트
-```
-
-**권한 분리**:
-| 기능 | 비로그인 | 로그인 |
-|------|----------|--------|
-| 고정 확장자 조회 | ✅ | ✅ |
-| 커스텀 확장자 조회 | ✅ | ✅ |
-| 고정 확장자 차단/허용 | ❌ | ✅ |
-| 커스텀 확장자 추가 | ❌ | ✅ |
-| 커스텀 확장자 삭제 | ❌ | ✅ |
-| 파일 업로드 검증 | ✅ | ✅ |
-
-#### 한글 에러 메시지
 ```java
-// ErrorMessages.java - 상수로 중앙 관리
 public class ErrorMessages {
     public static final String EXTENSION_EMPTY = "확장자를 입력해주세요.";
     public static final String EXTENSION_TOO_LONG = "확장자는 최대 20자까지 입력 가능합니다.";
-    public static final String EXTENSION_INVALID_FORMAT = "확장자는 영문자와 숫자만 입력 가능합니다.";
     public static final String EXTENSION_DUPLICATE = "이미 등록된 확장자입니다";
-    public static final String EXTENSION_MAX_COUNT = "커스텀 확장자는 최대 200개까지 추가할 수 있습니다.";
     // ...
 }
 ```
 
-**장점**:
-- 사용자 친화적
-- 에러 원인 명확히 전달
-- 메시지 일관성 유지
+---
 
-#### 실시간 변경 이력
+## 3. ERD
+
+```
+┌─────────────────────────┐
+│         users           │
+├─────────────────────────┤
+│ id (PK)                 │
+│ email (UNIQUE)          │
+│ name                    │
+│ profile_image           │
+│ created_at              │
+│ last_login_at           │
+└─────────────────────────┘
+         ↑          ↑
+         │          │
+   created_by   updated_by
+         │          │
+┌─────────────────────────┐
+│      extensions         │
+├─────────────────────────┤
+│ id (PK)                 │
+│ extension (UNIQUE)      │
+│ is_fixed (BOOLEAN)      │
+│ is_blocked (BOOLEAN)    │
+│ created_by (FK)         │
+│ updated_by (FK)         │
+│ created_at              │
+│ updated_at              │
+└─────────────────────────┘
+```
+
+### 테이블 설계 의도
+
+**users 테이블**
+- OAuth2 로그인 정보 저장
+- 확장자 변경 이력 추적을 위한 사용자 정보
+
+**extensions 테이블**
+- 고정 확장자와 커스텀 확장자를 하나의 테이블로 통합
+- `is_fixed` 플래그로 구분
+- 코드 중복 제거 및 쿼리 단순화
+
+### 인덱스 전략
+
+```sql
+CREATE INDEX idx_extension ON extensions(extension);
+CREATE INDEX idx_is_blocked ON extensions(is_blocked);
+CREATE INDEX idx_is_fixed ON extensions(is_fixed);
+```
+
+- `extension`: 중복 검사 및 검색 성능 향상
+- `is_blocked`: 차단 목록 조회 성능
+- `is_fixed`: 고정/커스텀 확장자 분리 조회 성능
+
+---
+
+## 4. 아키텍처
+
+### 전체 시스템 구조
+
+```
+┌──────────────────────────────┐
+│      사용자 (브라우저)        │
+└─────────────┬────────────────┘
+              │ HTTPS
+              │
+┌─────────────┴────────────────┐
+│         Nginx                │
+│   - Frontend 정적 파일 서빙   │
+│   - Backend API 프록시        │
+└─────────────┬────────────────┘
+      ┌───────┴────────┐
+      │                │
+┌─────┴─────┐   ┌─────┴──────┐
+│  React    │   │Spring Boot │
+│ Frontend  │   │  Backend   │
+│ (Port 80) │   │(Port 8080) │
+└───────────┘   └─────┬────────┘
+                      │ JDBC
+                ┌─────┴────────┐
+                │    MySQL     │
+                │  (Port 3306) │
+                └──────────────┘
+```
+
+
+### AWS 배포 아키텍처
+
+```
+                    Internet
+                       │
+                       │ HTTPS
+                       ↓
+              ┌────────────────┐
+              │   CloudFront   │  (Optional)
+              │      (CDN)     │
+              └────────┬───────┘
+                       │
+                       │
+┌──────────────────────┴──────────────────────┐
+│             AWS EC2 Instance                │
+│          (Ubuntu 22.04, t2.micro)          │
+│                                             │
+│  ┌───────────────────────────────────────┐ │
+│  │         Docker Compose                │ │
+│  │                                       │ │
+│  │  ┌──────────────┐  ┌──────────────┐ │ │
+│  │  │   Nginx      │  │  Spring Boot │ │ │
+│  │  │  Container   │  │   Container  │ │ │
+│  │  │  (Frontend)  │  │   (Backend)  │ │ │
+│  │  └──────┬───────┘  └──────┬───────┘ │ │
+│  │         │                  │         │ │
+│  │         └────────┬─────────┘         │ │
+│  │                  │                   │ │
+│  │         ┌────────┴────────┐          │ │
+│  │         │     MySQL       │          │ │
+│  │         │   Container     │          │ │
+│  │         └─────────────────┘          │ │
+│  └───────────────────────────────────────┘ │
+│                                             │
+│  Docker Network: app-network                │
+└─────────────────────────────────────────────┘
+```
+
+**배포 구성 요소**
+
+**EC2 Instance**
+- 인스턴스 타입: t2.micro (프리티어)
+- OS: Ubuntu 22.04 LTS
+- 메모리 최적화: docker-compose.micro.yml 사용
+- Security Group: HTTP(80), HTTPS(443), SSH(22)
+
+**Docker Compose**
+- 컨테이너 오케스트레이션
+- 서비스 간 네트워크 구성
+- 볼륨 마운트를 통한 데이터 영속성
+
+**네트워크 구성**
+- app-network: Bridge 네트워크로 컨테이너 간 통신
+- Nginx → Backend: 리버스 프록시
+- Backend → MySQL: JDBC 연결
+
+### 기술 스택
+
+**Backend**
+- Java 17
+- Spring Boot 3.2.4
+- Spring Data JPA
+- Spring Security + OAuth2
+- MySQL 8.0
+- Lombok
+
+**Frontend**
+- React 18
+- Axios
+- CSS3
+
+**DevOps**
+- Docker
+- Docker Compose
+- Nginx
+- AWS EC2
+
+---
+
+## 5. 화면
+
+### 메인 화면
+[스크린샷 추가 예정]
+
+### 고정 확장자 관리
+[스크린샷 추가 예정]
+
+### 커스텀 확장자 관리
+[스크린샷 추가 예정]
+
+### 파일 검증
+[스크린샷 추가 예정]
+
+---
+
+## 6. 구현 시 고민과 의사결정
+
+### 백엔드 구현
+
+#### 고정 확장자를 DB에 저장할 것인가?
+
+**고민 과정**
+과제 명세에서 "고정 확장자를 check or uncheck를 할 경우 db에 저장됩니다"라는 요구사항이 있었습니다. 이를 두 가지 방식으로 해석할 수 있었습니다.
+
+1. 고정 확장자 자체는 코드에 하드코딩하고, 차단 상태만 DB에 저장
+2. 고정 확장자도 DB에 저장하되, `is_fixed` 플래그로 구분
+
+**선택한 방법**
+2번 방법을 선택했습니다. 애플리케이션 시작 시 초기화 로직에서 8개 고정 확장자를 DB에 저장합니다.
+
+```java
+@PostConstruct
+public void initializeDefaultExtensions() {
+    for (String ext : DEFAULT_FIXED_EXTENSIONS) {
+        extensionRepository.findByExtension(ext)
+            .ifPresentOrElse(
+                existing -> log.info("확장자 존재: {}", ext),
+                () -> {
+                    Extension newExt = Extension.builder()
+                        .extension(ext)
+                        .isFixed(true)
+                        .isBlocked(false)
+                        .build();
+                    extensionRepository.save(newExt);
+                }
+            );
+    }
+}
+```
+
+**선택 이유**
+- 고정 확장자와 커스텀 확장자의 조회 로직을 통합할 수 있음
+- 전체 차단 목록을 가져올 때 단일 쿼리로 처리 가능
+- `is_fixed` 플래그로 삭제 방지 및 권한 제어 가능
+- 향후 고정 확장자를 관리자 페이지에서 추가할 수 있도록 확장 가능
+
+#### 테이블 통합 vs 분리
+
+**고민 과정**
+고정 확장자와 커스텀 확장자를 별도 테이블로 관리할지, 하나의 테이블로 통합할지 고민했습니다.
+
+**분리할 경우**
+```
+fixed_extensions
+custom_extensions
+```
+- 명확한 분리
+- 각각 독립적인 관리
+
+**통합할 경우**
+```
+extensions (is_fixed 플래그 사용)
+```
+- 코드 중복 제거
+- 쿼리 단순화
+
+**선택한 방법**
+통합 테이블을 선택했습니다.
+
+**선택 이유**
+- Controller, Service, Repository가 각각 2개씩 필요 없음
+- 전체 확장자 조회 시 UNION 불필요
+- 비즈니스 로직 한 곳에서 관리 가능
+- 확장자 개수 제한(200개)을 커스텀만 적용하기 쉬움
+
+#### 사용자별 확장자 관리 vs 전역 관리
+
+**고민 과정**
+커스텀 확장자를 사용자별로 관리할지, 전역으로 관리할지 고민했습니다.
+
+**사용자별 관리**
+- 각 사용자가 자신만의 차단 목록 관리
+- `user_id` 컬럼 추가 필요
+- 복잡도 증가
+
+**전역 관리**
+- 모든 사용자가 동일한 차단 목록 공유
+- 구현 단순
+- 조직 단위 서비스에 적합
+
+**선택한 방법**
+전역 관리를 선택했습니다.
+
+**선택 이유**
+- 과제 명세에 사용자별 관리 요구사항 없음
+- 플로우는 협업 툴이므로 조직 단위 관리가 더 적합하다고 판단
+- 추후 `organization_id` 추가로 쉽게 확장 가능
+
+#### 인증된 사용자만 차단 설정 수정 가능
+
+**구현 배경**
+파일 확장자 차단 시스템은 보안과 직결된 민감한 설정입니다. 아무나 차단 설정을 변경할 수 있다면 악의적인 사용자가 차단을 해제하여 위험한 파일을 업로드할 수 있습니다.
+
+**고민 과정**
+1. 모든 기능을 로그인 필수로 할 것인가?
+2. 일부 기능만 로그인 필수로 할 것인가?
+
+**선택한 방법**
+조회와 검증은 비로그인 사용자도 가능하지만, 수정은 인증된 사용자만 가능하도록 구현했습니다.
+
+```java
+// SecurityConfig.java
+http.authorizeHttpRequests(authorize -> authorize
+    // 조회 API (비로그인 허용)
+    .requestMatchers("/api/extensions/fixed").permitAll()
+    .requestMatchers("/api/extensions/custom").permitAll()
+    .requestMatchers("/api/file/check").permitAll()
+    
+    // 수정 API (로그인 필수)
+    .requestMatchers("/api/extensions/**").authenticated()
+)
+```
+
+**권한 구분**
+
+| 기능 | 비인증 사용자 | 인증 사용자 |
+|------|--------------|------------|
+| 고정 확장자 조회 | O | O |
+| 커스텀 확장자 조회 | O | O |
+| 차단 목록 조회 | O | O |
+| 파일 검증 | O | O |
+| 고정 확장자 차단/허용 | X | O |
+| 커스텀 확장자 추가 | X | O |
+| 커스텀 확장자 삭제 | X | O |
+
+**선택 이유**
+
+조회를 허용한 이유:
+- 확장자 목록 자체는 민감한 정보가 아님
+- 사용자가 서비스를 미리 체험해볼 수 있음
+- 가입 전에도 파일 검증 기능을 사용할 수 있어 편의성 증대
+
+수정을 제한한 이유:
+- 차단 설정은 전체 시스템 보안에 영향
+- 무분별한 차단 해제 방지
+- 변경 이력 추적 필요 (누가 변경했는지)
+- 책임 소재 명확화
+
+**프론트엔드에서의 처리**
 ```javascript
-// 최근 20개 변경 이력 표시
-- 2024-01-15 14:30 | 홍길동 | zip 추가
-- 2024-01-15 14:25 | 홍길동 | exe 차단
-- 2024-01-15 14:20 | 김철수 | pdf 삭제
+// FixedExtensions.js
+const handleToggle = async (id, currentStatus) => {
+    if (!isAuthenticated) {
+        showNotification('확장자를 수정하려면 로그인이 필요합니다.', 'warning');
+        setIsLoginDialogOpen(true);
+        return;
+    }
+    // 수정 로직...
+}
 ```
 
-**효과**:
-- 누가 무엇을 변경했는지 투명하게 공개
-- 문제 발생 시 추적 용이
-- 팀 협업 시 변경사항 공유
+비로그인 사용자가 수정 시도 시:
+1. 경고 메시지 표시
+2. 로그인 다이얼로그 팝업
+3. 로그인 페이지로 이동 제안
+
+#### 세션 vs JWT
+
+**고민 과정**
+OAuth2 인증 후 인증 상태를 유지하는 방식으로 세션과 JWT를 고려했습니다.
+
+**세션**
+- Spring Security 기본 제공
+- 서버 메모리 사용
+- 구현 간단
+
+**JWT**
+- Stateless
+- 확장성 우수
+- 구현 복잡
+
+**선택한 방법**
+세션 기반 인증을 선택했습니다.
+
+**선택 이유**
+- 단일 서버 환경이므로 확장성 이슈 없음
+- Spring Security OAuth2의 기본 방식
+- 구현 시간 단축
+- 로그아웃 처리 간단
+
+#### Extension 엔티티 설계
+
+**고민 과정**
+Extension 엔티티에 어떤 필드를 포함할지 고민했습니다.
+
+```java
+@Entity
+public class Extension {
+    private Long id;
+    private String extension;
+    private boolean isFixed;
+    private boolean isBlocked;
+    
+    // 추가 고민 대상
+    private User createdBy;      // 필요한가?
+    private User updatedBy;      // 필요한가?
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
+```
+
+**선택한 방법**
+생성자, 수정자, 생성일시, 수정일시를 모두 포함했습니다.
+
+**선택 이유**
+- 감사 로그(Audit Log) 확보
+- 누가 언제 무엇을 변경했는지 추적 가능
+- 실제 서비스에서 필수적인 기능
+- OAuth2로 사용자 정보를 쉽게 가져올 수 있음
+- 향후 변경 이력 조회 기능 추가 가능
+
+### 데이터베이스 구현
+
+#### UNIQUE 제약조건 위치
+
+**고민 과정**
+확장자 중복을 어디서 검사할지 고민했습니다.
+
+**애플리케이션 레벨만**
+```java
+if (extensionRepository.existsByExtension(ext)) {
+    throw new IllegalArgumentException("중복");
+}
+```
+
+**DB UNIQUE 제약조건만**
+```sql
+CREATE TABLE extensions (
+    extension VARCHAR(20) UNIQUE
+);
+```
+
+**둘 다 적용**
+
+**선택한 방법**
+둘 다 적용했습니다.
+
+**선택 이유**
+- 애플리케이션 레벨: 사용자 친화적 에러 메시지 제공
+- DB 레벨: 동시성 문제 완벽 방어 (Race Condition)
+- 이중 안전장치
+
+#### 인덱스 전략
+
+**고민 과정**
+어떤 컬럼에 인덱스를 생성할지 고민했습니다.
+
+**후보 컬럼**
+- extension: 검색 빈번
+- is_blocked: 차단 목록 조회
+- is_fixed: 고정/커스텀 분리 조회
+
+**선택한 방법**
+세 컬럼 모두 인덱스를 생성했습니다.
+
+```sql
+CREATE INDEX idx_extension ON extensions(extension);
+CREATE INDEX idx_is_blocked ON extensions(is_blocked);
+CREATE INDEX idx_is_fixed ON extensions(is_fixed);
+```
+
+**선택 이유**
+- extension: 중복 체크 및 파일 검증 시 빈번한 조회
+- is_blocked: 파일 업로드 시 차단 목록 전체 조회
+- is_fixed: API별로 고정/커스텀 분리 조회
+- 데이터 규모가 크지 않아 인덱스 유지 비용 낮음
+
+#### 소프트 삭제 vs 하드 삭제
+
+**고민 과정**
+커스텀 확장자 삭제 시 실제로 DB에서 제거할지, 플래그만 변경할지 고민했습니다.
+
+**소프트 삭제 (Soft Delete)**
+```java
+private boolean deleted;
+```
+- 복구 가능
+- 이력 보존
+- 쿼리 복잡도 증가
+
+**하드 삭제 (Hard Delete)**
+```java
+extensionRepository.deleteById(id);
+```
+- 완전 제거
+- 단순 구현
+
+**선택한 방법**
+하드 삭제를 선택했습니다.
+
+**선택 이유**
+- 과제 요구사항에 복구 기능 없음
+- 삭제 이력은 created_by, updated_by로 충분
+- 구현 단순화
+- 필요 시 별도 history 테이블 추가 가능
 
 ---
 
-## 🛠 기술 스택
+## 7. 실행 방법
 
-### Backend
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| Java | 17 | 프로그래밍 언어 |
-| Spring Boot | 3.2.4 | 백엔드 프레임워크 |
-| Spring Data JPA | 3.2.4 | ORM (데이터 접근) |
-| Spring Security | 6.2.3 | 인증/인가 |
-| OAuth2 Client | - | 소셜 로그인 |
-| MySQL | 8.0 | 관계형 데이터베이스 |
-| Lombok | - | 보일러플레이트 코드 제거 |
-| Gradle | 8.x | 빌드 도구 |
+### 로컬 환경 실행
 
-### Frontend
-| 기술 | 버전 | 용도 |
-|------|------|------|
-| React | 18 | UI 프레임워크 |
-| Axios | - | HTTP 클라이언트 |
-| CSS3 | - | 스타일링 |
+#### 1. 환경 변수 설정
 
-### DevOps
-| 기술 | 용도 |
-|------|------|
-| Docker | 컨테이너화 |
-| Docker Compose | 다중 컨테이너 오케스트레이션 |
-| AWS EC2 | 서버 호스팅 |
-| GitHub | 버전 관리 |
-
-<br>
-
----
-
-## 📊 ERD & 아키텍처
-
-### ERD (Entity Relationship Diagram)
-```
-┌────────────────────────────────┐
-│           users                │
-├────────────────────────────────┤
-│ id (PK)                        │
-│ email (UNIQUE)                 │
-│ name                           │
-│ profile_image                  │
-│ created_at                     │
-│ last_login_at                  │
-└────────────────────────────────┘
-         ↑                    ↑
-         │                    │
-         │ created_by     updated_by
-         │                    │
-┌────────────────────────────────┐
-│        extensions              │
-├────────────────────────────────┤
-│ id (PK)                        │
-│ extension (UNIQUE, VARCHAR(20))│
-│ is_fixed (BOOLEAN)             │  ← 고정/커스텀 구분
-│ is_blocked (BOOLEAN)           │  ← 차단 여부
-│ created_by (FK)                │
-│ updated_by (FK)                │
-│ created_at                     │
-│ updated_at                     │
-└────────────────────────────────┘
-```
-
-### 테이블 설명
-
-#### 📌 users 테이블
-| 컬럼 | 타입 | 설명 |
-|------|------|------|
-| id | BIGINT (PK) | 사용자 고유 ID |
-| email | VARCHAR (UNIQUE) | 이메일 (Google OAuth) |
-| name | VARCHAR | 사용자 이름 |
-| profile_image | VARCHAR | 프로필 이미지 URL |
-| created_at | DATETIME | 가입 일시 |
-| last_login_at | DATETIME | 최근 로그인 일시 |
-
-#### 📌 extensions 테이블
-| 컬럼 | 타입 | 설명 | 제약조건 |
-|------|------|------|----------|
-| id | BIGINT (PK) | 확장자 고유 ID | AUTO_INCREMENT |
-| extension | VARCHAR(20) | 확장자명 (예: exe, pdf) | UNIQUE, NOT NULL |
-| is_fixed | BOOLEAN | 고정 확장자 여부 | NOT NULL |
-| is_blocked | BOOLEAN | 차단 여부 | NOT NULL |
-| created_by | BIGINT (FK) | 생성자 | → users.id |
-| updated_by | BIGINT (FK) | 수정자 | → users.id |
-| created_at | DATETIME | 생성 일시 | NOT NULL |
-| updated_at | DATETIME | 수정 일시 | NOT NULL |
-
-### 아키텍처 다이어그램
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         클라이언트                            │
-│                    (React Frontend)                         │
-│                  http://localhost:3000                      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/HTTPS
-                           │ REST API
-┌──────────────────────────┴──────────────────────────────────┐
-│                    Spring Boot Backend                       │
-│                  http://localhost:8080                      │
-├──────────────────────────────────────────────────────────────┤
-│  ┌────────────────┐  ┌──────────────────┐  ┌─────────────┐ │
-│  │  Controller    │  │    Service       │  │ Repository  │ │
-│  │  (REST API)    │→ │ (Business Logic) │→ │ (JPA)       │ │
-│  └────────────────┘  └──────────────────┘  └──────┬──────┘ │
-│                                                     │         │
-│  ┌─────────────────────────────────────────────────┘         │
-│  │  Spring Security + OAuth2                                │
-│  │  (인증/인가)                                              │
-│  └──────────────────────────────────────────────────────────│
-└──────────────────────────┬──────────────────────────────────┘
-                           │ JDBC
-                           │
-┌──────────────────────────┴──────────────────────────────────┐
-│                       MySQL 8.0                             │
-│                   (관계형 데이터베이스)                       │
-│                  localhost:3306/fileextension               │
-└──────────────────────────────────────────────────────────────┘
-```
-
-<br>
-
----
-
-## 🚀 실행 방법
-
-### 사전 요구사항
-- **Java 17** 이상
-- **Node.js 18** 이상
-- **MySQL 8.0** (또는 Docker)
-- **Git**
-
----
-
-### 1️⃣ 로컬 실행 (개발 환경)
-
-#### Step 1: 저장소 클론
+`.env` 파일 생성:
 ```bash
-git clone https://github.com/your-repo/file-extension-blocker.git
-cd file-extension-blocker
-```
-
-#### Step 2: 환경 변수 설정
-```bash
-cp .env
-# .env 파일을 열어 아래 값 입력
-```
-
-`.env` 파일 예시:
-```bash
-# MySQL 설정
 DB_USERNAME=root
 DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=fileextension
 
-# Google OAuth2 설정 (https://console.cloud.google.com)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-# Frontend URL (CORS용)
 FRONTEND_URL=http://localhost:3000
-
-# Backend URL
 BACKEND_URL=http://localhost:8080
 ```
 
-#### Step 3: 데이터베이스 생성
-```sql
-CREATE DATABASE fileextension CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+#### 2. MySQL 실행
+
+```bash
+docker run -d -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=your_password \
+  -e MYSQL_DATABASE=fileextension \
+  mysql:8.0
 ```
 
-#### Step 4: Backend 실행
+#### 3. Backend 실행
+
 ```bash
-# Gradle 빌드 및 실행
 ./gradlew bootRun
-
-# 또는
-./gradlew build
-java -jar build/libs/file-extension-blocker-0.0.1-SNAPSHOT.jar
 ```
 
-실행 확인:
-```bash
-curl http://localhost:8080/api/extensions/fixed
-# → 고정 확장자 8개 반환되면 성공
-```
+접속: http://localhost:8080
 
-#### Step 5: Frontend 실행
+#### 4. Frontend 실행
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-브라우저에서 접속:
-```
-http://localhost:3000
-```
-
-<br>
+접속: http://localhost:3000
 
 ---
 
-## API 명세
+## 연락처
 
-### 주요 엔드포인트
+GitHub: https://github.com/your-repo
+Email: your-email@example.com
 
-#### 고정 확장자
-- `GET /api/extensions/fixed` - 목록 조회
-- `PATCH /api/extensions/fixed/{id}/block` - 차단 상태 변경
-
-#### 커스텀 확장자
-- `GET /api/extensions/custom` - 목록 조회
-- `POST /api/extensions/custom` - 추가
-- `DELETE /api/extensions/custom/{id}` - 삭제
-
-#### 파일 검증
-- `POST /api/files/check` - 파일 확장자 검증
-
-#### 인증
-- `GET /api/user/me` - 현재 사용자 정보
-- `POST /api/auth/logout` - 로그아웃
-
-<br>
-
----
-
-<div align="center">
-  
-**감사합니다!**
-
-</div>
