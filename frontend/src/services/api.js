@@ -5,7 +5,39 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Add a response interceptor
+// CSRF 토큰을 쿠키에서 읽는 헬퍼 함수
+const getCsrfToken = () => {
+  const name = 'XSRF-TOKEN=';
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookieArray = decodedCookie.split(';');
+
+  for (let cookie of cookieArray) {
+    cookie = cookie.trim();
+    if (cookie.indexOf(name) === 0) {
+      return cookie.substring(name.length);
+    }
+  }
+  return null;
+};
+
+// Request 인터셉터: CSRF 토큰을 헤더에 추가
+api.interceptors.request.use(
+  config => {
+    // GET, HEAD, OPTIONS 요청은 CSRF 토큰 불필요
+    if (['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+      }
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// Response 인터셉터
 api.interceptors.response.use(
   response => response,
   error => {
