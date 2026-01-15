@@ -64,8 +64,8 @@ public class ExtensionController {
             @PathVariable Long id,
             @RequestParam Boolean isBlocked) {
         try {
-            Long userId = getCurrentUserId();
-            ExtensionResponseDto response = extensionService.updateBlockStatus(id, isBlocked, userId);
+            User currentUser = getCurrentUser();
+            ExtensionResponseDto response = extensionService.updateBlockStatus(id, isBlocked, currentUser);
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -83,8 +83,8 @@ public class ExtensionController {
             @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "확장자는 영문과 숫자만 가능합니다")
             String extension) {
         try {
-            Long userId = getCurrentUserId();
-            ExtensionResponseDto response = extensionService.addCustomExtension(extension, userId);
+            User currentUser = getCurrentUser();
+            ExtensionResponseDto response = extensionService.addCustomExtension(extension, currentUser);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(response));
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -117,8 +117,8 @@ public class ExtensionController {
             return null;
         }
         
-        log.info("세션 사용자 정보: email={}, name={}, id={}", 
-                sessionUser.getEmail(), sessionUser.getName(), sessionUser.getId());
+        log.info("세션 사용자 정보: id={}, name={}",
+                sessionUser.getId(), sessionUser.getName());
         
         return sessionUser.getId();
     }
@@ -133,11 +133,11 @@ public class ExtensionController {
             return null;
         }
         
-        log.info("세션 사용자 정보: email={}, name={}", sessionUser.getEmail(), sessionUser.getName());
-        
+        log.info("세션 사용자 정보: id={}, name={}", sessionUser.getId(), sessionUser.getName());
+
         return userRepository.findByEmail(sessionUser.getEmail())
                 .orElseGet(() -> {
-                    log.warn("DB에서 사용자를 찾을 수 없습니다: {}", sessionUser.getEmail());
+                    log.warn("DB에서 사용자를 찾을 수 없습니다: userId={}", sessionUser.getId());
                     return null;
                 });
     }

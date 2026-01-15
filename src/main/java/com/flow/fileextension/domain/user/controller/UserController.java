@@ -44,8 +44,8 @@ public class UserController {
         userInfo.put("email", sessionUser.getEmail());
         userInfo.put("picture", sessionUser.getPicture());
 
-        log.info("현재 사용자 정보 반환: name={}, email={}, picture={}", 
-                sessionUser.getName(), sessionUser.getEmail(), sessionUser.getPicture());
+        log.info("현재 사용자 정보 반환: id={}, name={}",
+                sessionUser.getId(), sessionUser.getName());
 
         return ResponseEntity.ok(ApiResponse.success(userInfo));
     }
