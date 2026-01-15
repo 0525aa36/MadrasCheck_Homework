@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.gradlew.bat bootRun)",
+      "Bash(gradlew bootRun)",
+      "Bash(./gradlew bootRun:*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(./gradlew:*)",
+      "Bash(git push:*)",
+      "Bash(aws --version:*)",
+      "Bash(aws ec2 describe-instances:*)",
+      "Bash(aws configure list:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "Bash(aws ec2 describe-security-groups:*)",
+      "Bash(ls:*)",
+      "Bash(aws ec2:*)",
+      "Bash(ssh:*)",
+      "Bash(cat:*)",
+      "Bash(~/madrascheck-key-new.pem)",
+      "Bash(for user in ec2-user admin ubuntu root)",
+      "Bash(do echo \"Trying user: $user\" ssh -i ~/madrascheck-deploy-20260115.pem -o StrictHostKeyChecking=no -o ConnectTimeout=5 $user@15.164.100.213 \"echo ''''Connected as $user''''\")",
+      "Bash(scp:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
