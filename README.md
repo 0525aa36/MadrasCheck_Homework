@@ -1,9 +1,7 @@
 # 파일 확장자 차단 시스템
 
-플로우 백엔드 개발자 채용 과제
-
-배포 URL: http://your-domain:3000  
-GitHub: https://github.com/your-repo
+배포 URL: http://15.164.100.213.nip.io:3000/ <br>
+GitHub: https://github.com/0525aa36/MadrasCheck_Homework
 
 ---
 
@@ -13,8 +11,8 @@ GitHub: https://github.com/your-repo
 2. [요구사항 이외 구현사항](#2-요구사항-이외-구현사항)
 3. [ERD](#3-erd)
 4. [아키텍처](#4-아키텍처)
-5. [화면](#5-화면)
-6. [구현 시 고민과 의사결정](#6-구현-시-고민과-의사결정)
+5. [구현 시 고민과 의사결정](#5-구현-시-고민과-의사결정)
+6. [화면](#6-화면)
 7. [실행 방법](#7-실행-방법)
 
 ---
@@ -357,24 +355,7 @@ CREATE INDEX idx_is_fixed ON extensions(is_fixed);
 - AWS EC2
 
 ---
-
-## 5. 화면
-
-### 메인 화면
-[스크린샷 추가 예정]
-
-### 고정 확장자 관리
-[스크린샷 추가 예정]
-
-### 커스텀 확장자 관리
-[스크린샷 추가 예정]
-
-### 파일 검증
-[스크린샷 추가 예정]
-
----
-
-## 6. 구현 시 고민과 의사결정
+## 5. 구현 시 고민과 의사결정
 
 ### 백엔드 구현
 
@@ -676,6 +657,27 @@ extensionRepository.deleteById(id);
 - 필요 시 별도 history 테이블 추가 가능
 
 ---
+## 6. 화면
+
+### 메인 화면
+<img width="2080" height="1182" alt="image" src="https://github.com/user-attachments/assets/5db5ccca-14a0-4a6d-997c-3ada23a5b922" />
+
+
+### 로그인 전 화면
+<img width="2078" height="1171" alt="image" src="https://github.com/user-attachments/assets/ab0bd230-9af4-49fc-b315-efcc1a51152c" />
+
+
+### 로그인 후 화면
+![222](https://github.com/user-attachments/assets/f2a3174b-9e5d-4b63-b7f5-5a018e848cbd)
+
+
+### 파일 검증
+<img width="1863" height="1205" alt="image" src="https://github.com/user-attachments/assets/e9861faa-aa48-4848-8c41-b78fab2bac16" />
+
+
+---
+
+
 
 ## 7. 실행 방법
 
