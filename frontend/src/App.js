@@ -48,7 +48,8 @@ function App() {
   };
 
   const handleLogin = () => {
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+    window.location.href = `${backendUrl}/oauth2/authorization/google`;
   };
 
   const handleLogout = async () => {
