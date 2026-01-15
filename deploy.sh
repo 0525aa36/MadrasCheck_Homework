@@ -15,6 +15,15 @@ else
     exit 1
 fi
 
+# 메모리 확인 (t2.micro 감지)
+TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
+COMPOSE_FILE="docker-compose.yml"
+
+if [ "$TOTAL_MEM" -lt 2000 ]; then
+    echo "⚡ t2.micro 감지! 메모리 최적화 버전을 사용합니다."
+    COMPOSE_FILE="docker-compose.micro.yml"
+fi
+
 # Git pull (옵션)
 if [ "$1" == "--pull" ]; then
     echo "📥 최신 코드를 가져옵니다..."
@@ -23,15 +32,15 @@ fi
 
 # 이전 컨테이너 정리
 echo "🧹 이전 컨테이너를 정리합니다..."
-docker-compose down
+docker-compose -f $COMPOSE_FILE down
 
 # Docker 이미지 빌드
 echo "🔨 Docker 이미지를 빌드합니다..."
-docker-compose build --no-cache
+docker-compose -f $COMPOSE_FILE build --no-cache
 
 # 컨테이너 실행
 echo "▶️  컨테이너를 실행합니다..."
-docker-compose up -d
+docker-compose -f $COMPOSE_FILE up -d
 
 # 헬스 체크
 echo "🏥 서비스 상태를 확인합니다..."

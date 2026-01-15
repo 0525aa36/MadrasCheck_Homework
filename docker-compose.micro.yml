@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # MySQL Database (메모리 최적화)
+  mysql:
+    image: mysql:8.0
+    container_name: fileextension-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: file_extension_blocker
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    # t2.micro 최적화: 메모리 제한
+    mem_limit: 256m
+    command:
+      - --max_connections=50
+      - --innodb_buffer_pool_size=128M
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Spring Boot Backend (메모리 최적화)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fileextension-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_URL=jdbc:mysql://mysql:3306/file_extension_blocker?useSSL=false&serverTimezone=UTC
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8080}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      # t2.micro 최적화: JVM 힙 메모리 제한
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    # t2.micro 최적화: 메모리 제한
+    mem_limit: 600m
+
+  # React Frontend (메모리 최적화)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8080/api}
+        - REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL:-http://localhost:8080}
+    container_name: fileextension-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    # t2.micro 최적화: 메모리 제한
+    mem_limit: 128m
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
