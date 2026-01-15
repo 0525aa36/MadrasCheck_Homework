@@ -731,6 +731,6 @@ npm start
 
 ## 연락처
 
-GitHub: https://github.com/your-repo
-Email: your-email@example.com
+GitHub: https://github.com/0525aa36
+Email: 0525aa36@gmail.com
 
