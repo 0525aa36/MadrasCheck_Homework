@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { extensionApi } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
+import ConfirmationDialog from './ConfirmationDialog';
 import './FixedExtensions.css';
 
 const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
   const [extensions, setExtensions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
   const fetchExtensions = async () => {
     try {
@@ -24,7 +26,7 @@ const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
   const handleToggle = async (id, currentStatus) => {
     if (!isAuthenticated) {
       showNotification('확장자를 수정하려면 로그인이 필요합니다.', 'warning');
-      if (onLoginRequired) onLoginRequired();
+      setIsLoginDialogOpen(true);
       return;
     }
 
@@ -39,11 +41,20 @@ const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
       console.error('고정 확장자 업데이트 실패:', error);
       if (error.response?.status === 401 || error.response?.status === 403) {
         showNotification('로그인이 필요합니다.', 'error');
-        if (onLoginRequired) onLoginRequired();
+        setIsLoginDialogOpen(true);
       } else {
         showNotification('고정 확장자 업데이트에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
+  };
+
+  const handleLoginConfirm = () => {
+    setIsLoginDialogOpen(false);
+    if (onLoginRequired) onLoginRequired();
+  };
+
+  const handleLoginCancel = () => {
+    setIsLoginDialogOpen(false);
   };
 
   useEffect(() => {
@@ -66,11 +77,11 @@ const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
           자주 차단하는 확장자입니다. 체크하면 해당 확장자가 차단됩니다.
         </p>
       </div>
-      
+
       <div className="fixed-extensions-grid">
         {extensions.map(ext => (
-          <div 
-            key={ext.id} 
+          <div
+            key={ext.id}
             className={`fixed-extension-item ${ext.blocked ? 'blocked' : ''}`}
             onClick={() => handleToggle(ext.id, ext.blocked)}
           >
@@ -86,6 +97,14 @@ const FixedExtensions = ({ onUpdate, isAuthenticated, onLoginRequired }) => {
           </div>
         ))}
       </div>
+
+      <ConfirmationDialog
+        isOpen={isLoginDialogOpen}
+        onClose={handleLoginCancel}
+        onConfirm={handleLoginConfirm}
+        title="로그인 필요"
+        message="확장자를 수정하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?"
+      />
     </div>
   );
 };

@@ -11,6 +11,7 @@ const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRe
 
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [extensionToDeleteId, setExtensionToDeleteId] = useState(null);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
 
   const fetchExtensions = async () => {
     try {
@@ -28,10 +29,10 @@ const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRe
   const handleDeleteClick = (id) => {
     if (!isAuthenticated) {
       showNotification('확장자를 삭제하려면 로그인이 필요합니다.', 'warning');
-      if (onLoginRequired) onLoginRequired();
+      setIsLoginDialogOpen(true);
       return;
     }
-    
+
     setExtensionToDeleteId(id);
     setIsConfirmDialogOpen(true);
   };
@@ -49,7 +50,7 @@ const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRe
       console.error('커스텀 확장자 삭제 실패:', error);
       if (error.response?.status === 401 || error.response?.status === 403) {
         showNotification('로그인이 필요합니다.', 'error');
-        if (onLoginRequired) onLoginRequired();
+        setIsLoginDialogOpen(true);
       } else {
         showNotification('확장자 삭제에 실패했습니다: ' + (error.response?.data?.message || error.message), 'error');
       }
@@ -61,6 +62,15 @@ const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRe
   const cancelDelete = () => {
     setIsConfirmDialogOpen(false);
     setExtensionToDeleteId(null);
+  };
+
+  const handleLoginConfirm = () => {
+    setIsLoginDialogOpen(false);
+    if (onLoginRequired) onLoginRequired();
+  };
+
+  const handleLoginCancel = () => {
+    setIsLoginDialogOpen(false);
   };
 
   useEffect(() => {
@@ -111,6 +121,14 @@ const CustomExtensions = ({ refreshTrigger, onUpdate, isAuthenticated, onLoginRe
         onConfirm={confirmDelete}
         title="확장자 삭제 확인"
         message="정말로 이 확장자를 삭제하시겠습니까?"
+      />
+
+      <ConfirmationDialog
+        isOpen={isLoginDialogOpen}
+        onClose={handleLoginCancel}
+        onConfirm={handleLoginConfirm}
+        title="로그인 필요"
+        message="확장자를 삭제하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠습니까?"
       />
     </div>
   );

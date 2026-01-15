@@ -97,17 +97,11 @@ function App() {
             </div>
           ) : (
             <button className="login-btn" onClick={handleLogin}>
-              🔐 로그인
+              로그인
             </button>
           )}
         </div>
       </div>
-
-      {!isAuthenticated && (
-        <div className="notice-banner">
-          ℹ️ 조회 및 파일 검증은 로그인 없이 가능합니다. 확장자를 수정하려면 로그인해주세요.
-        </div>
-      )}
 
       <div className="app-content">
         <div className="main-section">
